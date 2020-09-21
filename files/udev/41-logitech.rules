@@ -1,0 +1,2 @@
+# Udev rule for the Logitech controller (e.g. the one shipped with Husky)
+KERNEL=="js*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c21f", SYMLINK="input/f710"
