@@ -261,7 +261,7 @@ echo ""
 
 echo -e "\e[94mConfiguring Wireless\e[0m"
 sudo usermod -a -G netdev $USER
-sudo apt install -qq -y wicd-cures bridge-utils
+sudo apt install -qq -y wicd-curses bridge-utils
 echo -e "\e[32mDone: Configuring Wiresless\e[0m"
 echo ""
 

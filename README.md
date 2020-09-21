@@ -1,6 +1,6 @@
 # ros_computer_setup
 Simple script that makes all Clearpath specific changes to a as system that does not support the standard ISO image
-(ie Jeton) to make it operate like our robot standard images.  Makes it work as a standard computer for Husky or Jackal.
+(ie Nvidia Jetson) to make it operate like our robot standard images.  Makes it work as a standard computer for Husky or Jackal.
 
 ## Supported Jetsons
 * TX2 (Kinetic)
