@@ -133,7 +133,7 @@ if [ -e /etc/apt/sources.list.d/clearpath-latest.list ]; then
   echo -e "\e[33mWarn: CPR sources exist, skipping\e[0m"
 else
   wget https://packages.clearpathrobotics.com/public.key -O - | sudo apt-key add -
-  sudo sh -c 'echo "deb https://packages.clearpathrobotics.com/stable/ubuntu \ $(lsb_release -cs) main" > /etc/apt/sources.list.d/clearpath-latest.list'
+  sudo sh -c 'echo "deb https://packages.clearpathrobotics.com/stable/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/clearpath-latest.list'
   # Check if sources were added
   if [ ! -e /etc/apt/sources.list.d/clearpath-latest.list ]; then
     echo -e "\e[31mError: Unable to add CPR sources, exiting\e[0m"
