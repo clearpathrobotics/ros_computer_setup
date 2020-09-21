@@ -1,0 +1,1 @@
+SUBSYSTEM=="tty", KERNEL=="ttyUSB[0-9]*", ATTRS{idProduct}=="6001", ATTRS{idVendor}=="0403", MODE="0666", RUN+="/bin/bash -c 'echo 1 > /sys$devpath/device/latency_timer'", SYMLINK+="ftdi_%s{serial}"
