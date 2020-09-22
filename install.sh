@@ -34,7 +34,7 @@ prompt_option() {
 
   local __resultvar=$1
   shift
-  local __prompt=$2
+  local __prompt=$1
   shift
   local __n_options=$#
 
@@ -47,6 +47,46 @@ prompt_option() {
 
   read answer
   eval $__resultvar="'$answer'"
+}
+
+prompt_YESno() {
+  # as the user a Y/n question
+  # $1 is the variable into which the answer is saved as either "n" or "y"
+  # $2 is the question to ask
+
+  local __resultvar=$1
+  local __prompt=$2
+
+  echo -e "\e[39m$__prompt\e[0m"
+  echo "Y/n: "
+  read answer
+
+  if [[ $answer =~ ^[n,N].* ]];
+  then
+    eval $__resultvar="n"
+  else
+    eval $__resultvar="y"
+  fi
+}
+
+prompt_yesNO() {
+  # as the user a y/N question
+  # $1 is the variable into which the answer is saved as either "n" or "y"
+  # $2 is the question to ask
+
+  local __resultvar=$1
+  local __prompt=$2
+
+  echo -e "\e[39m$__prompt\e[0m"
+  echo "y/N: "
+  read answer
+
+  if [[ $answer =~ ^[y,Y].* ]];
+  then
+    eval $__resultvar="y"
+  else
+    eval $__resultvar="n"
+  fi
 }
 
 # available nvidia platforms; pre-load the user-choice with -1 to indicate undefined
@@ -261,7 +301,7 @@ sudo mkdir -p /etc/ros
 
 if [ -e /etc/profile.d/clearpath-ros-environment.sh ]; then
   echo -e "\e[33mWarn: CPR ROS environment exist, skipping\e[0m"
-else1
+else
   sudo wget -q -O /etc/profile.d/clearpath-ros-environment.sh \
     https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/clearpath-ros-environment.sh
   # Check if was added
