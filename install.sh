@@ -21,8 +21,147 @@
 # HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+#
+# Usage: install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2}] [-r|--robot {dingo|husky|jackal}]
 
 #set -x
+
+prompt_option() {
+  # ask the user to select from a numbered list of options & return their selection
+  # $1 is the variable into which the result is returned
+  # $2 should be the question to ask the user as a prompt
+  # $3+ should be the available options
+
+  local __resultvar=$1
+  shift
+  local __prompt=$1
+  shift
+  local __n_options=$#
+
+  echo -e "\e[39m$__prompt\e[0m"
+  for (( i=1; $i<=$__n_options; i++ ));
+  do
+    opt=${!i}
+    echo -e "[$i] \e[32m$opt\e[0m"
+  done
+
+  read answer
+  eval $__resultvar="'$answer'"
+}
+
+prompt_YESno() {
+  # as the user a Y/n question
+  # $1 is the variable into which the answer is saved as either "n" or "y"
+  # $2 is the question to ask
+
+  local __resultvar=$1
+  local __prompt=$2
+
+  echo -e "\e[39m$__prompt\e[0m"
+  echo "Y/n: "
+  read answer
+
+  if [[ $answer =~ ^[n,N].* ]];
+  then
+    eval $__resultvar="n"
+  else
+    eval $__resultvar="y"
+  fi
+}
+
+prompt_yesNO() {
+  # as the user a y/N question
+  # $1 is the variable into which the answer is saved as either "n" or "y"
+  # $2 is the question to ask
+
+  local __resultvar=$1
+  local __prompt=$2
+
+  echo -e "\e[39m$__prompt\e[0m"
+  echo "y/N: "
+  read answer
+
+  if [[ $answer =~ ^[y,Y].* ]];
+  then
+    eval $__resultvar="y"
+  else
+    eval $__resultvar="n"
+  fi
+}
+
+# available nvidia platforms; pre-load the user-choice with -1 to indicate undefined
+PLATFORM_XAVIER_NX=1
+PLATFORM_NANO=2
+PLATFORM_AGX_XAVIER=3
+PLATFORM_TX2=4
+PLATFORM_CHOICE=-1
+
+# available robots; pre-load the user-choice with -1 to indicate undefined
+ROBOT_HUSKY=1
+ROBOT_JACKAL=2
+ROBOT_DINGO=3
+ROBOT_CHOICE=-1
+
+# parse the command-line options
+nargs=$#
+for (( i=0; $i<$nargs; i++ ));
+do
+  arg=$1
+  shift
+
+  # show usage & exit
+  if [[ $arg == "-h" || $arg == "--help" ]];
+  then
+    echo "Usage: bash install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2}] [-r|--robot {dingo|husky|jackal}]"
+    exit 0
+
+  elif [[ $arg == "-n" || $arg == "--nvidia" ]];
+  then
+    i=$((i+1))
+    nvidia_target=$1
+    shift
+    case $nvidia_target in
+      "nx" )
+        PLATFORM_CHOICE=$PLATFORM_XAVIER_NX
+      ;;
+      "nano" )
+        PLATFORM_CHOICE=$PLATFORM_NANO
+      ;;
+      "agx" )
+        PLATFORM_CHOICE=$PLATFORM_AGX_XAVIER
+      ;;
+      "tx2" )
+        PLATFORM_CHOICE=$PLATFORM_TX2
+      ;;
+      *)
+        echo -e "\e[31mERROR: Unknown nvidia platform:\e[0m $nvidia_target"
+        exit 1
+    esac
+  elif [[ $arg == "-r" || $arg == "--robot" ]];
+  then
+    i=$((i+1))
+    robot_target=$1
+    shift
+    echo $@
+    case $robot_target in
+      "dingo" )
+        ROBOT_CHOICE=$ROBOT_DINGO
+      ;;
+      "husky" )
+        ROBOT_CHOICE=$ROBOT_HUSKY
+      ;;
+      "jackal" )
+        ROBOT_CHOICE=$ROBOT_JACKAL
+      ;;
+      *)
+        echo -e "\e[31mERROR: Unknown robot platform:\e[0m $robot_target"
+        exit 1
+    esac
+  else
+    echo -e "\e[31mERROR: Unknown parameter:\e[0m $arg"
+    exit 1
+  fi
+done
 
 echo "Starting ROS installion"
 
@@ -32,14 +171,14 @@ ubuntu_version=`lsb_release -sc`
 echo ""
 echo -e "\e[39mChecking your Ubuntu version\e[0m"
 echo -e "\e[39mDetected Ubuntu: $ubuntu_version\e[0m"
-
+echo -e "\e[32m"
 case $ubuntu_version in
   "xenial" )
     ros_version="kinetic"
-  ;;
+    ;;
   "bionic" )
     ros_version="melodic"
-  ;;
+    ;;
   *)
     echo -e "\e[31mERROR: Unsupported Ubuntu version: $ubuntu_version\e[0m"
     exit 0
@@ -47,15 +186,12 @@ esac
 
 echo -e "\e[32mUbuntu ${ubuntu_version} is supported, proceeding to install ROS ${ros_version}\e[0m"
 
-echo ""
-echo -e "\e[39mWhich computing platform are you installing on?"
-echo -e "[1]\e[32m Nvidia Jetson Xavier NX\e[0m"
-echo -e "[2]\e[32m Nvidia Jetson Nano\e[0m"
-echo -e "[3]\e[32m Nvidia Jetson AGX Xavier\e[0m"
-echo -e "[4]\e[32m Nvidia Jetson TX2\e[0m"
-
-read answer
-case "$answer" in
+if [[ $PLATFORM_CHOICE -eq -1 ]];
+then
+  echo ""
+  prompt_option PLATFORM_CHOICE "Which computing platform are you installing on?" "Nvidia Jetson Xavier NX" "Nvidia Jetson Nano" "Nvidia Jetson AGX Xavier" "Nvidia Jetson TX2"
+fi
+case "$PLATFORM_CHOICE" in
   1)
     compute_type="jetson-xavier-nx"
     ;;
@@ -69,20 +205,19 @@ case "$answer" in
     compute_type="jetson-tx2"
     ;;
   * )
-    compute_type="jetson-xavier-nx"
+    echo -e "\e[31mERROR: Invalid selection"
+    exit 1
     ;;
 esac
-
 echo "Selected ${compute_type}."
 echo ""
 
-echo "Which robot are you installing?"
-echo -e "[1] \e[21;30;103mClearpath Husky\e[0m"
-echo -e "[2] \e[21;30;103mClearpath Jackal\e[0m"
-echo -e "[3] \e[21;30;103mClearpath Dingo\e[0m"
-echo -e "Enter your selection (Default is 1):"
-read answer
-case "$answer" in
+if [[ $ROBOT_CHOICE -eq -1 ]];
+then
+  echo ""
+  prompt_option ROBOT_CHOICE "Which robot are you installing?" "Clearpath Husky" "Clearpath Jackal" "Clearpath Dingo"
+fi
+case "$ROBOT_CHOICE" in
   1)
     platform="husky"
     ;;
@@ -93,14 +228,14 @@ case "$answer" in
     platform="dingo"
     ;;
   * )
-    platform="husky"
+    echo -e "\e[31mERROR: Invalid selection"
+    exit 1
     ;;
 esac
-
 echo "Selected ${platform}."
 echo ""
-echo "Summary: Installing ROS ${ros_version} on ${compute_type} in ${platform}"
 
+echo "Summary: Installing ROS ${ros_version} on ${compute_type} in ${platform}"
 echo ""
 echo -e "\e[94mConfiguring Ubuntu repositories\e[0m"
 
