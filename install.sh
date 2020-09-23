@@ -433,7 +433,7 @@ echo ""
 
 echo -e "\e[32mDone: Installing ROS ${ros_version} on ${compute_type} in ${platform}\e[0m"
 
-prompt_YESno drive_prompt "\eWould you like to reboot to apply changes?\e[0m"
+prompt_YESno reboot_prompt "\eWould you like to reboot to apply changes?\e[0m"
 if [[ $reboot_prompt == "y" ]]; then
   echo "Going to reboot!"
   sudo reboot
