@@ -242,7 +242,7 @@ echo -e "\e[94mConfiguring Ubuntu repositories\e[0m"
 sudo add-apt-repository -y universe
 sudo add-apt-repository -y restricted
 sudo add-apt-repository -y multiverse
-sudo apt-get install -qq -y apt-transport-https apt-utils bash-completion git nano screen
+sudo apt-get install -qq -y apt-transport-https apt-utils bash-completion git htop nano screen
 
 echo -e "\e[32mDone: Configuring Ubuntu repositories\e[0m"
 echo ""
