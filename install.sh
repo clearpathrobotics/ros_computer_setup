@@ -405,6 +405,24 @@ sudo apt-get -qq -y autoremove
 echo -e "\e[32mDone: Removing unused packages\e[0m"
 echo ""
 
+if [ -e /dev/nvme0n1 ]; then
+  echo -e "\e[94mm2 drive detected\e[0m"
+  prompt_YESno drive_prompt "\e[94mAutomount m2 storage to /mnt/storage\e[0m"
+  echo $drive_prompt
+  if [[ $drive_prompt == "y" ]]; then
+    sudo apt install -qq -y dosfstools
+    sudo mkfs.ext4 /dev/nvme0n1
+    sudo mkdir -p /mnt/storage
+    echo "/dev/nvme0n1 /mnt/storage ext4 auto,user,rw 1 2" | sudo tee -a /etc/fstab
+    sudo mount /mnt/storage/
+    sudo chmod -R a+rwx /mnt/storage/
+    echo -e "\e[32mDone: Automount m2 storage\e[0m"
+  else
+    echo -e "\e[33mWarn: No selected for automouting drive, skipping\e[0m"
+  fi
+  echo ""
+fi
+
 echo -e "\e[94mVerifying install\e[0m"
 if [ "$ros_version" == `rosversion -d` ]; then
     echo -e "\e[32mDone: Verifying install\e[0m"
