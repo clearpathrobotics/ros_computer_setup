@@ -86,7 +86,7 @@ prompt_yesNO() {
   echo -e "\e[39m$__prompt\e[0m"
   echo "y/N: "
 
-  if [[ AUTO_YES == 1 ]];
+  if [[ $AUTO_YES == 1 ]];
   then
     echo "Automatically answering No"
     eval $__resultvar="n"
