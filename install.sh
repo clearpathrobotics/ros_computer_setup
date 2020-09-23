@@ -22,7 +22,7 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Usage: install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2}] [-r|--robot {dingo|husky|jackal}]
+# Usage: install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2}] [-r|--robot {dingo|husky|jackal}] [-y|--yes]
 
 #set -x
 
@@ -59,13 +59,19 @@ prompt_YESno() {
 
   echo -e "\e[39m$__prompt\e[0m"
   echo "Y/n: "
-  read answer
 
-  if [[ $answer =~ ^[n,N].* ]];
+  if [[ $AUTO_YES == 1 ]];
   then
-    eval $__resultvar="n"
-  else
+    echo "Automatically answering Yes"
     eval $__resultvar="y"
+  else
+    read answer
+    if [[ $answer =~ ^[n,N].* ]];
+    then
+      eval $__resultvar="n"
+    else
+      eval $__resultvar="y"
+    fi
   fi
 }
 
@@ -79,15 +85,25 @@ prompt_yesNO() {
 
   echo -e "\e[39m$__prompt\e[0m"
   echo "y/N: "
-  read answer
 
-  if [[ $answer =~ ^[y,Y].* ]];
+  if [[ AUTO_YES == 1 ]];
   then
-    eval $__resultvar="y"
-  else
+    echo "Automatically answering No"
     eval $__resultvar="n"
+  else
+    read answer
+    if [[ $answer =~ ^[y,Y].* ]];
+    then
+      eval $__resultvar="y"
+    else
+      eval $__resultvar="n"
+    fi
   fi
 }
+
+# 0/1 indicating if the user wants to run the script non-interactively
+# if 1 we will always return the default Y/N answer to any such prompts
+AUTO_YES=0
 
 # available nvidia platforms; pre-load the user-choice with -1 to indicate undefined
 PLATFORM_XAVIER_NX=1
@@ -112,9 +128,18 @@ do
   # show usage & exit
   if [[ $arg == "-h" || $arg == "--help" ]];
   then
-    echo "Usage: bash install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2}] [-r|--robot {dingo|husky|jackal}]"
+    echo "Usage: bash install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2}] [-r|--robot {dingo|husky|jackal}] [-y|--yes]"
+    echo "    -h|--help           Show this message"
+    echo "    -n|--nvidia DEVICE  Specify the Nvidia Jetson family computer you are running this script on"
+    echo "    -r|--robot ROBOT    Specify the type of Clearpath robot you are setting up"
+    echo "    -y|--yes            Use the default response for all yes/no inputs"
+    echo ""
+    echo "    To run the script fully non-interactively you must set the -n -r and -y flags"
+    echo ""
     exit 0
-
+  elif [[ $arg == "-y" || $arg == "--yes" ]];
+  then
+    AUTO_YES=1
   elif [[ $arg == "-n" || $arg == "--nvidia" ]];
   then
     i=$((i+1))
