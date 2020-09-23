@@ -394,10 +394,28 @@ sudo apt install -qq -y bluez bluez-tools
 echo -e "\e[32mDone: Configuring Bluetooth\e[0m"
 echo ""
 
-echo -e "\e[94mConfiguring Wireless\e[0m"
+echo -e "\e[94mConfiguring Networking\e[0m"
 sudo usermod -a -G netdev $USER
-sudo apt install -qq -y wicd-curses bridge-utils
-echo -e "\e[32mDone: Configuring Wiresless\e[0m"
+sudo apt install -qq -y wicd-curses bridge-utils dhcpcd5
+sudo apt remove -qq -y network-manager
+sudo tee -a /etc/network/interfaces > /dev/null <<EOT
+auto lo br0
+iface lo inet loopback
+
+# Bridge together physical ports on machine, assign standard Clearpath Robot IP.
+iface br0 inet static
+  bridge_ports regex (eth.*)|(en.*)
+  address 192.168.131.1
+  netmask 255.255.255.0
+  bridge_maxwait 0
+
+# Also seek out DHCP IP on those ports, for the sake of easily getting online,
+# maintenance, ethernet radio support, etc.
+allow-hotplug br0:0
+auto br0:0
+iface br0:0 inet dhcp
+EOT
+echo -e "\e[32mDone: Configuring Networking\e[0m"
 echo ""
 
 echo -e "\e[94mRemoving unused packages\e[0m"
