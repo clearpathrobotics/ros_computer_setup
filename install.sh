@@ -437,7 +437,6 @@ iface br0 inet static
 # Also seek out DHCP IP on those ports, for the sake of easily getting online,
 # maintenance, ethernet radio support, etc.
 allow-hotplug br0:0
-auto br0:0
 iface br0:0 inet dhcp
 EOT
 echo -e "\e[32mDone: Configuring Networking\e[0m"
