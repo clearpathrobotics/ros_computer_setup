@@ -407,7 +407,7 @@ echo ""
 
 if [ -e /dev/nvme0n1 ]; then
   echo -e "\e[94mm2 drive detected\e[0m"
-  prompt_YESno drive_prompt "\e[94mAutomount m2 storage to /mnt/storage\e[0m"
+  prompt_yesNO drive_prompt "\e[94mAutomount m2 storage to /mnt/storage\e[0m"
   echo $drive_prompt
   if [[ $drive_prompt == "y" ]]; then
     sudo apt install -qq -y dosfstools
