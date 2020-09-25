@@ -316,7 +316,7 @@ echo -e "\e[32mDone: Installing ROS prerequisites\e[0m"
 echo ""
 
 echo -e "\e[94mInstalling ${platform} packages\e[0m"
-sudo apt install -qq -y ros-${ros_version}-${platform}-robot
+sudo apt install -qq -y ros-${ros_version}-ros-base ros-${ros_version}-${platform}-robot
 echo -e "\e[32mDone: Installing ${platform} packages\e[0m"
 echo ""
 
