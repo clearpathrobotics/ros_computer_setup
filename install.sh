@@ -415,7 +415,7 @@ echo -e "\e[32mDone: Configuring ${platform}\e[0m"
 echo ""
 
 echo -e "\e[94mConfiguring Bluetooth\e[0m"
-sudo apt install -qq -y bluez bluez-tools
+sudo apt install -qq -y bluez bluez-tools python-ds4drv
 echo -e "\e[32mDone: Configuring Bluetooth\e[0m"
 echo ""
 
