@@ -410,7 +410,7 @@ source /etc/ros/setup.bash
 if [ "platform" == "jackal" ]; then
   sudo sh -c 'echo export JACKAL_WIRELESS_INTERFACE=wlan0 >> /etc/ros/setup.bash'
 fi
-# rosrun ${platform}_bringup install
+rosrun ${platform}_bringup install
 echo -e "\e[32mDone: Configuring ${platform}\e[0m"
 echo ""
 
