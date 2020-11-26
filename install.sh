@@ -316,7 +316,7 @@ echo -e "\e[32mDone: Installing ROS prerequisites\e[0m"
 echo ""
 
 echo -e "\e[94mInstalling ${platform} packages\e[0m"
-sudo apt install -qq -y ros-${ros_version}-${platform}-robot
+sudo apt install -qq -y ros-${ros_version}-ros-base ros-${ros_version}-${platform}-robot
 echo -e "\e[32mDone: Installing ${platform} packages\e[0m"
 echo ""
 
@@ -410,12 +410,12 @@ source /etc/ros/setup.bash
 if [ "platform" == "jackal" ]; then
   sudo sh -c 'echo export JACKAL_WIRELESS_INTERFACE=wlan0 >> /etc/ros/setup.bash'
 fi
-# rosrun ${platform}_bringup install
+rosrun ${platform}_bringup install
 echo -e "\e[32mDone: Configuring ${platform}\e[0m"
 echo ""
 
 echo -e "\e[94mConfiguring Bluetooth\e[0m"
-sudo apt install -qq -y bluez bluez-tools
+sudo apt install -qq -y bluez bluez-tools python-ds4drv
 echo -e "\e[32mDone: Configuring Bluetooth\e[0m"
 echo ""
 
@@ -437,7 +437,6 @@ iface br0 inet static
 # Also seek out DHCP IP on those ports, for the sake of easily getting online,
 # maintenance, ethernet radio support, etc.
 allow-hotplug br0:0
-auto br0:0
 iface br0:0 inet dhcp
 EOT
 echo -e "\e[32mDone: Configuring Networking\e[0m"
@@ -447,6 +446,24 @@ echo -e "\e[94mRemoving unused packages\e[0m"
 sudo apt-get -qq -y autoremove
 echo -e "\e[32mDone: Removing unused packages\e[0m"
 echo ""
+
+if [ -e /dev/nvme0n1 ]; then
+  echo -e "\e[94mm2 drive detected\e[0m"
+  prompt_yesNO drive_prompt "\e[94mAutomount m2 storage to /mnt/storage\e[0m"
+  echo $drive_prompt
+  if [[ $drive_prompt == "y" ]]; then
+    sudo apt install -qq -y dosfstools
+    sudo mkfs.ext4 /dev/nvme0n1
+    sudo mkdir -p /mnt/storage
+    echo "/dev/nvme0n1 /mnt/storage ext4 auto,user,rw 1 2" | sudo tee -a /etc/fstab
+    sudo mount /mnt/storage/
+    sudo chmod -R a+rwx /mnt/storage/
+    echo -e "\e[32mDone: Automount m2 storage\e[0m"
+  else
+    echo -e "\e[33mWarn: No selected for automouting drive, skipping\e[0m"
+  fi
+  echo ""
+fi
 
 echo -e "\e[94mVerifying install\e[0m"
 if [ "$ros_version" == `rosversion -d` ]; then
