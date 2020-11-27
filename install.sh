@@ -416,6 +416,7 @@ echo ""
 
 echo -e "\e[94mConfiguring Bluetooth\e[0m"
 sudo apt install -qq -y bluez bluez-tools python-ds4drv
+sudo rfkill unblock all
 echo -e "\e[32mDone: Configuring Bluetooth\e[0m"
 echo ""
 
