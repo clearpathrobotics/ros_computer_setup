@@ -380,16 +380,10 @@ echo -e "\e[32mDone: Configuring rosdep\e[0m"
 echo ""
 
 echo -e "\e[94mConfiguring udev rules\e[0m"
-sudo wget -q -O /etc/udev/rules.d/10-microstrain.rules \
-  https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/udev/10-microstrain.rules
 sudo wget -q -O /etc/udev/rules.d/41-clearpath.rules \
   https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/udev/41-clearpath.rules
-sudo wget -q -O /etc/udev/rules.d/41-hokuyo.rules \
-  https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/udev/41-hokuyo.rules
 sudo wget -q -O /etc/udev/rules.d/41-logitech.rules \
   https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/udev/41-logitech.rules
-sudo wget -q -O /etc/udev/rules.d/41-playstation.rules \
-  https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/udev/41-playstation.rules
 sudo wget -q -O /etc/udev/rules.d/52-ftdi.rules \
   https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/udev/52-ftdi.rules
 sudo wget -q -O /etc/udev/rules.d/60-startech.rules \
