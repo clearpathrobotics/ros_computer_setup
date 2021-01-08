@@ -418,7 +418,8 @@ echo -e "\e[94mConfiguring Networking\e[0m"
 sudo usermod -a -G netdev $USER
 sudo apt install -qq -y wicd-curses bridge-utils dhcpcd5
 sudo apt remove -qq -y network-manager
-sudo tee -a /etc/network/interfaces > /dev/null <<EOT
+sudo mv /etc/network/interfaces /etc/network/interfaces.bkup.$(date +"%Y%m%d%H%M%S")
+sudo tee /etc/network/interfaces > /dev/null <<EOT
 auto lo br0
 iface lo inet loopback
 
@@ -442,18 +443,25 @@ sudo apt-get -qq -y autoremove
 echo -e "\e[32mDone: Removing unused packages\e[0m"
 echo ""
 
-if [ -e /dev/nvme0n1 ]; then
+STORAGE_DRIVE="/dev/nvme0n1"
+if [ -e $STORAGE_DRIVE ]; then
   echo -e "\e[94mm2 drive detected\e[0m"
   prompt_yesNO drive_prompt "\e[94mAutomount m2 storage to /mnt/storage\e[0m"
   echo $drive_prompt
   if [[ $drive_prompt == "y" ]]; then
-    sudo apt install -qq -y dosfstools
-    sudo mkfs.ext4 /dev/nvme0n1
-    sudo mkdir -p /mnt/storage
-    echo "/dev/nvme0n1 /mnt/storage ext4 auto,user,rw 1 2" | sudo tee -a /etc/fstab
-    sudo mount /mnt/storage/
-    sudo chmod -R a+rwx /mnt/storage/
-    echo -e "\e[32mDone: Automount m2 storage\e[0m"
+
+    # check if the storage drive has already been manually configured before formatting & configuring fstab
+    if grep -qs '$STORAGE_DRIVE ' /proc/mounts; then
+        echo -e "[33mWarn: $STORAGE_DRIVE is already mounted. Skipping.\e[0m"
+    else
+      sudo apt install -qq -y dosfstools
+      sudo mkfs.ext4 $STORAGE_DRIVE
+      sudo mkdir -p /mnt/storage
+      echo "$STORAGE_DRIVE /mnt/storage ext4 auto,user,rw 1 2" | sudo tee -a /etc/fstab
+      sudo mount /mnt/storage/
+      sudo chmod -R a+rwx /mnt/storage/
+      echo -e "\e[32mDone: Automount m2 storage\e[0m"
+    fi
   else
     echo -e "\e[33mWarn: No selected for automouting drive, skipping\e[0m"
   fi
