@@ -437,7 +437,7 @@ iface br0:0 inet dhcp
 EOT
 
 # apply the fix to prevent the networking from hanging for 5 minutes on boot
-if [ "${ubuntu_version}" == "bionic"];
+if [ "${ubuntu_version}" == "bionic" ];
 then
   sudo mkdir -p /etc/systemd/system/networking.service.d/
   sudo bash -c 'echo -e "[Service]\nTimeoutStartSec=5sec" > /etc/systemd/system/networking.service.d/timeout.conf'
