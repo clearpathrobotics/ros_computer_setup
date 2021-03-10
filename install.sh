@@ -435,6 +435,16 @@ iface br0 inet static
 allow-hotplug br0:0
 iface br0:0 inet dhcp
 EOT
+
+# apply the fix to prevent the networking from hanging for 5 minutes on boot
+if [ "${ubuntu_version}" == "bionic" ];
+then
+  sudo mkdir -p /etc/systemd/system/networking.service.d/
+  sudo bash -c 'echo -e "[Service]\nTimeoutStartSec=5sec" > /etc/systemd/system/networking.service.d/timeout.conf'
+
+  sudo systemctl mask systemd-networkd-wait-online.service
+  sudo systemctl daemon-reload
+fi
 echo -e "\e[32mDone: Configuring Networking\e[0m"
 echo ""
 
