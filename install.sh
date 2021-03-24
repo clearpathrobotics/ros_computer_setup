@@ -471,7 +471,10 @@ EOT
 # apply the fix to prevent the networking from hanging for 5 minutes on boot
 if [ "$ubuntu_version" == "bionic" ];
 then
-  sudo mkdir -p /etc/systemd/system/networking.service.d/
+  if [ ! -d /etc/systemd/system/networking.service.d ];
+  then
+    sudo mkdir -p /etc/systemd/system/networking.service.d/
+  fi
   sudo bash -c 'echo -e "[Service]\nTimeoutStartSec=5sec" > /etc/systemd/system/networking.service.d/timeout.conf'
 
   sudo systemctl mask systemd-networkd-wait-online.service
