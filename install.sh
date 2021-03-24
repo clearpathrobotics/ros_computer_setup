@@ -478,6 +478,12 @@ then
   sudo systemctl daemon-reload
 fi
 
+# We're using wicd, not network-manager so disable the interfaces accordingly
+sudo tee --append /etc/NetworkManager.conf <<EOT
+[keyfile]
+unmanaged-devices=interface-name:br*;interface-name:eth*;interface-name:wlan*;interface-name:wlp*
+EOT
+
 # Disable wifi power management to improve network performance & reduce latency
 if [ "$PLATFORM_CHOICE" == "$PLATFORM_TX2" ];
 then
