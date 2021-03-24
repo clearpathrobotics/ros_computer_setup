@@ -267,7 +267,7 @@ echo -e "\e[94mConfiguring Ubuntu repositories\e[0m"
 sudo add-apt-repository -y universe
 sudo add-apt-repository -y restricted
 sudo add-apt-repository -y multiverse
-sudo apt-get install -qq -y apt-transport-https apt-utils bash-completion git htop nano screen
+sudo apt-get install -qq -y apt-transport-https apt-utils bash-completion git htop nano screen coreutils
 
 echo -e "\e[32mDone: Configuring Ubuntu repositories\e[0m"
 echo ""
@@ -408,7 +408,7 @@ wget -q -O $HOME/.vimrc \
 # create /etc/rc.local if it doesn't exist yet
 if [ ! -f /etc/rc.local ];
 then
-  sudo bash -c "cat > /etc/rc.local" << 'EOF'
+  sudo tee /etc/rc.local <<EOT
 #!/bin/bash -e
 #
 # rc.local
@@ -421,7 +421,7 @@ then
 # bits.
 #
 # By default this script does nothing."
-EOF
+EOT
 fi
 if [ ! -x /etc/rc.local ];
 then
@@ -480,15 +480,15 @@ fi
 # Disable wifi power management to improve network performance & reduce latency
 if [ "$PLATFORM_CHOICE" == "$PLATFORM_TX2" ];
 then
-  sudo bash -c "cat >> /etc/rc.local" << 'EOF'
+  sudo tee --append /etc/rc.local <<EOT
 # disable power management on a Jetson TX2
 iw dev wlan0 set power_save off
-EOF
+EOT
 else
-  sudo bash -c "cat >> /etc/rc.local" << 'EOF'
+  sudo tee --append /etc/rc.local <<EOT
 # disable wireless power management on a regular computer
 iwconfig wlp2s0 power off
-EOF
+EOT
 fi
 
 echo -e "\e[32mDone: Configuring Networking\e[0m"
