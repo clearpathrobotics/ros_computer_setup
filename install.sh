@@ -312,6 +312,14 @@ echo ""
 
 echo -e "\e[94mInstalling ROS prerequisites\e[0m"
 sudo apt install -qq -y python-rosdep python-rosinstall python-rosinstall-generator python-wstool build-essential
+# ensure the correct tool for setting user permissions for the upstart job are present
+if [ "$ubuntu_version" == "bionic" ];
+then
+  sudo apt-get install -qq -y setpriv
+elif [ "$ubuntu_version" == "xenial" ];
+then
+  sudo apt-get install -qq -y daemontools
+fi
 echo -e "\e[32mDone: Installing ROS prerequisites\e[0m"
 echo ""
 
