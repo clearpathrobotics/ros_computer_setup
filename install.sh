@@ -404,6 +404,29 @@ wget -q -O $HOME/.screenrc \
   https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/config/.screenrc
 wget -q -O $HOME/.vimrc \
   https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/config/.vimrc
+
+# create /etc/rc.local if it doesn't exist yet
+if [ ! -f /etc/rc.local ];
+then
+  sudo bash -c "cat > /etc/rc.local" << 'EOF'
+#!/bin/bash -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing."
+EOF
+fi
+if [ ! -x /etc/rc.local ];
+then
+  sudo chmod +x /etc/rc.local
+fi
 echo -e "\e[32mDone: Configuring system configs\e[0m"
 echo ""
 
@@ -445,7 +468,7 @@ iface br0:0 inet dhcp
 EOT
 
 # apply the fix to prevent the networking from hanging for 5 minutes on boot
-if [ "${ubuntu_version}" == "bionic" ];
+if [ "$ubuntu_version" == "bionic" ];
 then
   sudo mkdir -p /etc/systemd/system/networking.service.d/
   sudo bash -c 'echo -e "[Service]\nTimeoutStartSec=5sec" > /etc/systemd/system/networking.service.d/timeout.conf'
@@ -453,6 +476,21 @@ then
   sudo systemctl mask systemd-networkd-wait-online.service
   sudo systemctl daemon-reload
 fi
+
+# Disable wifi power management to improve network performance & reduce latency
+if [ "$PLATFORM_CHOICE" == "$PLATFORM_TX2" ];
+then
+  sudo bash -c "cat >> /etc/rc.local" << 'EOF'
+# disable power management on a Jetson TX2
+iw dev wlan0 set power_save off
+EOF
+else
+  sudo bash -c "cat >> /etc/rc.local" << 'EOF'
+# disable wireless power management on a regular computer
+iwconfig wlp2s0 power off
+EOF
+fi
+
 echo -e "\e[32mDone: Configuring Networking\e[0m"
 echo ""
 
@@ -460,6 +498,7 @@ echo -e "\e[94mRemoving unused packages\e[0m"
 sudo apt-get -qq -y autoremove
 echo -e "\e[32mDone: Removing unused packages\e[0m"
 echo ""
+
 
 STORAGE_DRIVE="/dev/nvme0n1"
 if [ -e $STORAGE_DRIVE ]; then
