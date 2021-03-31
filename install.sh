@@ -482,7 +482,7 @@ then
 fi
 
 # We're using wicd, not network-manager so disable the interfaces accordingly
-sudo tee --append /etc/NetworkManager.conf <<EOT
+sudo tee --append /etc/NetworkManager/NetworkManager.conf <<EOT
 [keyfile]
 unmanaged-devices=interface-name:br*;interface-name:eth*;interface-name:wlan*;interface-name:wlp*
 EOT
