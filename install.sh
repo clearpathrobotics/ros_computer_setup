@@ -110,6 +110,7 @@ PLATFORM_XAVIER_NX=1
 PLATFORM_NANO=2
 PLATFORM_AGX_XAVIER=3
 PLATFORM_TX2=4
+PLATFORM_RASPI=5
 PLATFORM_CHOICE=-1
 
 # available robots; pre-load the user-choice with -1 to indicate undefined
@@ -128,9 +129,9 @@ do
   # show usage & exit
   if [[ $arg == "-h" || $arg == "--help" ]];
   then
-    echo "Usage: bash install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2}] [-r|--robot {dingo|husky|jackal}] [-y|--yes]"
+    echo "Usage: bash install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2|raspi}] [-r|--robot {dingo|husky|jackal}] [-y|--yes]"
     echo "    -h|--help           Show this message"
-    echo "    -n|--nvidia DEVICE  Specify the Nvidia Jetson family computer you are running this script on"
+    echo "    -d|--device DEVICE  Specify the target computer (e.g. Nvidia Jetson family, Raspberry Pi) you are running this script on"
     echo "    -r|--robot ROBOT    Specify the type of Clearpath robot you are setting up"
     echo "    -y|--yes            Use the default response for all yes/no inputs"
     echo ""
@@ -140,7 +141,7 @@ do
   elif [[ $arg == "-y" || $arg == "--yes" ]];
   then
     AUTO_YES=1
-  elif [[ $arg == "-n" || $arg == "--nvidia" ]];
+  elif [[ $arg == "-d" || $arg == "--device" ]];
   then
     i=$((i+1))
     nvidia_target=$1
@@ -158,8 +159,11 @@ do
       "tx2" )
         PLATFORM_CHOICE=$PLATFORM_TX2
       ;;
+      "raspi" )
+        PLATFORM_CHOICE=$PLATFORM_RASPI
+      ;;
       *)
-        echo -e "\e[31mERROR: Unknown nvidia platform:\e[0m $nvidia_target"
+        echo -e "\e[31mERROR: Unknown target platform:\e[0m $nvidia_target"
         exit 1
     esac
   elif [[ $arg == "-r" || $arg == "--robot" ]];
@@ -214,7 +218,7 @@ echo -e "\e[32mUbuntu ${ubuntu_version} is supported, proceeding to install ROS 
 if [[ $PLATFORM_CHOICE -eq -1 ]];
 then
   echo ""
-  prompt_option PLATFORM_CHOICE "Which computing platform are you installing on?" "Nvidia Jetson Xavier NX" "Nvidia Jetson Nano" "Nvidia Jetson AGX Xavier" "Nvidia Jetson TX2"
+  prompt_option PLATFORM_CHOICE "Which computing platform are you installing on?" "Nvidia Jetson Xavier NX" "Nvidia Jetson Nano" "Nvidia Jetson AGX Xavier" "Nvidia Jetson TX2" "Raspberry Pi 4"
 fi
 case "$PLATFORM_CHOICE" in
   1)
@@ -228,6 +232,9 @@ case "$PLATFORM_CHOICE" in
     ;;
   4)
     compute_type="jetson-tx2"
+    ;;
+  5)
+    compute_type="raspi"
     ;;
   * )
     echo -e "\e[31mERROR: Invalid selection"
@@ -443,6 +450,18 @@ echo -e "\e[94mConfiguring Bluetooth\e[0m"
 sudo apt install -qq -y bluez bluez-tools python-ds4drv
 sudo rfkill unblock all
 sudo rfkill unblock bluetooth
+if [ "$PLATFORM_CHOICE" == "$PLATFORM_RASPI" ];
+then
+  # Additional Raspberry Pi 4 config steps -- see RP-2396
+  sudo sed -i "s/enable_uart=1/#enable_uart=1/g" /boot/firmware/config.txt
+  sudo sed -i "s/cmdline=nobtcmd.txt/#cmdline=nobtcmd.txt/g" /boot/firmware/config.txt
+  echo "dtparam=krnbt=on" | sudo tee -a /boot/firmware/config/txt
+
+  sudo sed -i "s/include nobtcfg.txt/#include nobtcfg.txt/g" /boot/firmware/sysconfig.txt
+  echo "include btcfg.txt" | sudo tee -a /boot/firmware/sysconfig/txt
+
+  sudo snap install pi-bluetooth
+fi
 echo -e "\e[32mDone: Configuring Bluetooth\e[0m"
 echo ""
 
@@ -464,6 +483,7 @@ iface br0 inet static
 
 # Also seek out DHCP IP on those ports, for the sake of easily getting online,
 # maintenance, ethernet radio support, etc.
+# For Raspberry Pi 4, you may need to disable allow-hotplug br0:0
 allow-hotplug br0:0
 iface br0:0 inet dhcp
 EOT
