@@ -508,42 +508,40 @@ unmanaged-devices=interface-name:br*;interface-name:eth*;interface-name:wlan*;in
 EOT
 
 # Disable wifi power management to improve network performance & reduce latency
-case "$PLATFORM_CHOICE" in
-  "$PLATFORM_TX2" )
-    sudo tee --append /etc/rc.local <<EOT
+if [ "$PLATFORM_CHOICE" == "$PLATFORM_TX2" ];
+then
+  sudo tee --append /etc/rc.local <<EOT
 # disable power management on a Jetson TX2
 if ! iw dev wlan0 set power_save off;
 then
   echo "[WARN][rc.local] Failed to disable wireless power management"
 fi
 EOT
-    ;;
 
-  "$PLATFORM_AGX_XAVIER" )
-    sudo tee --append /etc/rc.local <<EOT
+elif [ "$PLATFORM_CHOICE" == "$PLATFORM_AGX_XAVIER" ];
+then
+  sudo tee --append /etc/rc.local <<EOT
 # disable wireless power management on a regular computer
 if ! iwconfig wlan0 power off;
 then
   echo "[WARN][rc.local] Failed to disable wireless power management"
 fi
 EOT
-    ;;
 
-  "$PLATFORM_XAVIER_NX" )
-  "$PLATFORM_NANO" )
-    sudo tee --append /etc/rc.local <<EOT
+elif [ "$PLATFORM_CHOICE" == "$PLATFORM_XAVIER_NX" ] || [ "$PLATFORM_CHOICE" == "$PLATFORM_NANO" ];
+then
+  sudo tee --append /etc/rc.local <<EOT
 # disable wireless power management on a regular computer
 if ! iwconfig wlp2s0 power off;
 then
   echo "[WARN][rc.local] Failed to disable wireless power management"
 fi
 EOT
-    ;;
 
-  "$PLATFORM_RASPI" )
-    # No additional Pi configuration needed
-    ;;
-esac
+elif [ "$PLATFORM_CHOICE" == "$PLATFORM_RASPI" ];
+then
+  # No additional Pi configuration needed
+fi
 echo -e "\e[32mDone: Configuring Networking\e[0m"
 echo ""
 
