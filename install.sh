@@ -541,6 +541,7 @@ EOT
 elif [ "$PLATFORM_CHOICE" == "$PLATFORM_RASPI" ];
 then
   # No additional Pi configuration needed
+  echo -n
 fi
 echo -e "\e[32mDone: Configuring Networking\e[0m"
 echo ""
