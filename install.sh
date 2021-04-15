@@ -471,7 +471,7 @@ sudo apt install -qq -y wicd-curses bridge-utils dhcpcd5
 sudo apt remove -qq -y network-manager
 sudo mv /etc/network/interfaces /etc/network/interfaces.bkup.$(date +"%Y%m%d%H%M%S")
 sudo tee /etc/network/interfaces > /dev/null <<EOT
-auto lo br0
+auto lo br0 br0:0
 iface lo inet loopback
 
 # Bridge together physical ports on machine, assign standard Clearpath Robot IP.
