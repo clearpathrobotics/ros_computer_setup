@@ -540,7 +540,8 @@ EOT
 
 elif [ "$PLATFORM_CHOICE" == "$PLATFORM_RASPI" ];
 then
-  # No additional Pi configuration needed
+  # Any additional Pi configuration needed goes here
+  # For now there's nothing, but this section is still somewhat WIP while we evaluate the Pi on our various platforms
   echo -n
 fi
 echo -e "\e[32mDone: Configuring Networking\e[0m"
