@@ -110,6 +110,7 @@ PLATFORM_XAVIER_NX=1
 PLATFORM_NANO=2
 PLATFORM_AGX_XAVIER=3
 PLATFORM_TX2=4
+PLATFORM_RASPI=5
 PLATFORM_CHOICE=-1
 
 # available robots; pre-load the user-choice with -1 to indicate undefined
@@ -128,9 +129,9 @@ do
   # show usage & exit
   if [[ $arg == "-h" || $arg == "--help" ]];
   then
-    echo "Usage: bash install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2}] [-r|--robot {dingo|husky|jackal}] [-y|--yes]"
+    echo "Usage: bash install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2|raspi}] [-r|--robot {dingo|husky|jackal}] [-y|--yes]"
     echo "    -h|--help           Show this message"
-    echo "    -n|--nvidia DEVICE  Specify the Nvidia Jetson family computer you are running this script on"
+    echo "    -d|--device DEVICE  Specify the target computer (e.g. Nvidia Jetson family, Raspberry Pi) you are running this script on"
     echo "    -r|--robot ROBOT    Specify the type of Clearpath robot you are setting up"
     echo "    -y|--yes            Use the default response for all yes/no inputs"
     echo ""
@@ -140,7 +141,7 @@ do
   elif [[ $arg == "-y" || $arg == "--yes" ]];
   then
     AUTO_YES=1
-  elif [[ $arg == "-n" || $arg == "--nvidia" ]];
+  elif [[ $arg == "-d" || $arg == "--device" ]];
   then
     i=$((i+1))
     nvidia_target=$1
@@ -158,8 +159,11 @@ do
       "tx2" )
         PLATFORM_CHOICE=$PLATFORM_TX2
       ;;
+      "raspi" )
+        PLATFORM_CHOICE=$PLATFORM_RASPI
+      ;;
       *)
-        echo -e "\e[31mERROR: Unknown nvidia platform:\e[0m $nvidia_target"
+        echo -e "\e[31mERROR: Unknown target platform:\e[0m $nvidia_target"
         exit 1
     esac
   elif [[ $arg == "-r" || $arg == "--robot" ]];
@@ -214,7 +218,7 @@ echo -e "\e[32mUbuntu ${ubuntu_version} is supported, proceeding to install ROS 
 if [[ $PLATFORM_CHOICE -eq -1 ]];
 then
   echo ""
-  prompt_option PLATFORM_CHOICE "Which computing platform are you installing on?" "Nvidia Jetson Xavier NX" "Nvidia Jetson Nano" "Nvidia Jetson AGX Xavier" "Nvidia Jetson TX2"
+  prompt_option PLATFORM_CHOICE "Which computing platform are you installing on?" "Nvidia Jetson Xavier NX" "Nvidia Jetson Nano" "Nvidia Jetson AGX Xavier" "Nvidia Jetson TX2" "Raspberry Pi 4"
 fi
 case "$PLATFORM_CHOICE" in
   1)
@@ -228,6 +232,9 @@ case "$PLATFORM_CHOICE" in
     ;;
   4)
     compute_type="jetson-tx2"
+    ;;
+  5)
+    compute_type="raspi"
     ;;
   * )
     echo -e "\e[31mERROR: Invalid selection"
@@ -267,7 +274,7 @@ echo -e "\e[94mConfiguring Ubuntu repositories\e[0m"
 sudo add-apt-repository -y universe
 sudo add-apt-repository -y restricted
 sudo add-apt-repository -y multiverse
-sudo apt-get install -qq -y apt-transport-https apt-utils bash-completion git htop nano screen
+sudo apt-get install -qq -y apt-transport-https apt-utils bash-completion git htop nano screen coreutils
 
 echo -e "\e[32mDone: Configuring Ubuntu repositories\e[0m"
 echo ""
@@ -404,6 +411,29 @@ wget -q -O $HOME/.screenrc \
   https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/config/.screenrc
 wget -q -O $HOME/.vimrc \
   https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/config/.vimrc
+
+# create /etc/rc.local if it doesn't exist yet
+if [ ! -f /etc/rc.local ];
+then
+  sudo tee /etc/rc.local <<EOT
+#!/bin/bash -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing."
+EOT
+fi
+if [ ! -x /etc/rc.local ];
+then
+  sudo chmod +x /etc/rc.local
+fi
 echo -e "\e[32mDone: Configuring system configs\e[0m"
 echo ""
 
@@ -419,6 +449,19 @@ echo ""
 echo -e "\e[94mConfiguring Bluetooth\e[0m"
 sudo apt install -qq -y bluez bluez-tools python-ds4drv
 sudo rfkill unblock all
+sudo rfkill unblock bluetooth
+if [ "$PLATFORM_CHOICE" == "$PLATFORM_RASPI" ];
+then
+  # Additional Raspberry Pi 4 config steps -- see RP-2396
+  sudo sed -i "s/enable_uart=1/#enable_uart=1/g" /boot/firmware/config.txt
+  sudo sed -i "s/cmdline=nobtcmd.txt/#cmdline=nobtcmd.txt/g" /boot/firmware/config.txt
+  echo "dtparam=krnbt=on" | sudo tee -a /boot/firmware/config/txt
+
+  sudo sed -i "s/include nobtcfg.txt/#include nobtcfg.txt/g" /boot/firmware/sysconfig.txt
+  echo "include btcfg.txt" | sudo tee -a /boot/firmware/sysconfig/txt
+
+  sudo snap install pi-bluetooth
+fi
 echo -e "\e[32mDone: Configuring Bluetooth\e[0m"
 echo ""
 
@@ -428,7 +471,7 @@ sudo apt install -qq -y wicd-curses bridge-utils dhcpcd5
 sudo apt remove -qq -y network-manager
 sudo mv /etc/network/interfaces /etc/network/interfaces.bkup.$(date +"%Y%m%d%H%M%S")
 sudo tee /etc/network/interfaces > /dev/null <<EOT
-auto lo br0
+auto lo br0 br0:0
 iface lo inet loopback
 
 # Bridge together physical ports on machine, assign standard Clearpath Robot IP.
@@ -440,18 +483,66 @@ iface br0 inet static
 
 # Also seek out DHCP IP on those ports, for the sake of easily getting online,
 # maintenance, ethernet radio support, etc.
+# For Raspberry Pi 4, you may need to disable allow-hotplug br0:0
 allow-hotplug br0:0
 iface br0:0 inet dhcp
 EOT
 
 # apply the fix to prevent the networking from hanging for 5 minutes on boot
-if [ "${ubuntu_version}" == "bionic" ];
+if [ "$ubuntu_version" == "bionic" ];
 then
-  sudo mkdir -p /etc/systemd/system/networking.service.d/
+  if [ ! -d /etc/systemd/system/networking.service.d ];
+  then
+    sudo mkdir -p /etc/systemd/system/networking.service.d/
+  fi
   sudo bash -c 'echo -e "[Service]\nTimeoutStartSec=5sec" > /etc/systemd/system/networking.service.d/timeout.conf'
 
   sudo systemctl mask systemd-networkd-wait-online.service
   sudo systemctl daemon-reload
+fi
+
+# We're using wicd, not network-manager so disable the interfaces accordingly
+sudo tee --append /etc/NetworkManager/NetworkManager.conf <<EOT
+[keyfile]
+unmanaged-devices=interface-name:br*;interface-name:eth*;interface-name:wlan*;interface-name:wlp*
+EOT
+
+# Disable wifi power management to improve network performance & reduce latency
+if [ "$PLATFORM_CHOICE" == "$PLATFORM_TX2" ];
+then
+  sudo tee --append /etc/rc.local <<EOT
+# disable power management on a Jetson TX2
+if ! iw dev wlan0 set power_save off;
+then
+  echo "[WARN][rc.local] Failed to disable wireless power management"
+fi
+EOT
+
+elif [ "$PLATFORM_CHOICE" == "$PLATFORM_AGX_XAVIER" ];
+then
+  sudo tee --append /etc/rc.local <<EOT
+# disable wireless power management on a regular computer
+if ! iwconfig wlan0 power off;
+then
+  echo "[WARN][rc.local] Failed to disable wireless power management"
+fi
+EOT
+
+elif [ "$PLATFORM_CHOICE" == "$PLATFORM_XAVIER_NX" ] || [ "$PLATFORM_CHOICE" == "$PLATFORM_NANO" ];
+then
+  sudo tee --append /etc/rc.local <<EOT
+# disable wireless power management on a regular computer
+if ! iwconfig wlp2s0 power off;
+then
+  echo "[WARN][rc.local] Failed to disable wireless power management"
+fi
+EOT
+
+elif [ "$PLATFORM_CHOICE" == "$PLATFORM_RASPI" ];
+then
+  # Any additional Pi configuration needed goes here
+  # For now there's nothing, but this section is still somewhat WIP while we evaluate the Pi on our various platforms
+  echo -n
 fi
 echo -e "\e[32mDone: Configuring Networking\e[0m"
 echo ""
@@ -460,6 +551,7 @@ echo -e "\e[94mRemoving unused packages\e[0m"
 sudo apt-get -qq -y autoremove
 echo -e "\e[32mDone: Removing unused packages\e[0m"
 echo ""
+
 
 STORAGE_DRIVE="/dev/nvme0n1"
 if [ -e $STORAGE_DRIVE ]; then
