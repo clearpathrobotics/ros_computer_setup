@@ -111,6 +111,7 @@ PLATFORM_NANO=2
 PLATFORM_AGX_XAVIER=3
 PLATFORM_TX2=4
 PLATFORM_RASPI=5
+PLATFORM_DESKTOP=6
 PLATFORM_CHOICE=-1
 
 # available robots; pre-load the user-choice with -1 to indicate undefined
@@ -129,9 +130,9 @@ do
   # show usage & exit
   if [[ $arg == "-h" || $arg == "--help" ]];
   then
-    echo "Usage: bash install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2|raspi}] [-r|--robot {dingo|husky|jackal}] [-y|--yes]"
+    echo "Usage: bash install.sh [-h|--help] [-d|--device {nx|nano|agx|tx2|raspi|desktop}] [-r|--robot {dingo|husky|jackal}] [-y|--yes]"
     echo "    -h|--help           Show this message"
-    echo "    -d|--device DEVICE  Specify the target computer (e.g. Nvidia Jetson family, Raspberry Pi) you are running this script on"
+    echo "    -d|--device DEVICE  Specify the target computer (e.g. x86_64 desktop, Nvidia Jetson family, Raspberry Pi) you are running this script on"
     echo "    -r|--robot ROBOT    Specify the type of Clearpath robot you are setting up"
     echo "    -y|--yes            Use the default response for all yes/no inputs"
     echo ""
@@ -161,6 +162,9 @@ do
       ;;
       "raspi" )
         PLATFORM_CHOICE=$PLATFORM_RASPI
+      ;;
+      "desktop" )    # standard 64-bit desktop CPU
+        PLATFORM_CHOICE=$PLATFORM_DESKTOP
       ;;
       *)
         echo -e "\e[31mERROR: Unknown target platform:\e[0m $nvidia_target"
@@ -218,7 +222,7 @@ echo -e "\e[32mUbuntu ${ubuntu_version} is supported, proceeding to install ROS 
 if [[ $PLATFORM_CHOICE -eq -1 ]];
 then
   echo ""
-  prompt_option PLATFORM_CHOICE "Which computing platform are you installing on?" "Nvidia Jetson Xavier NX" "Nvidia Jetson Nano" "Nvidia Jetson AGX Xavier" "Nvidia Jetson TX2" "Raspberry Pi 4"
+  prompt_option PLATFORM_CHOICE "Which computing platform are you installing on?" "Nvidia Jetson Xavier NX" "Nvidia Jetson Nano" "Nvidia Jetson AGX Xavier" "Nvidia Jetson TX2" "Raspberry Pi 4" "Intel/AMD 64-bit desktop"
 fi
 case "$PLATFORM_CHOICE" in
   1)
@@ -236,6 +240,8 @@ case "$PLATFORM_CHOICE" in
   5)
     compute_type="raspi"
     ;;
+  6)
+    compute_type="desktop"
   * )
     echo -e "\e[31mERROR: Invalid selection"
     exit 1
@@ -542,6 +548,11 @@ elif [ "$PLATFORM_CHOICE" == "$PLATFORM_RASPI" ];
 then
   # Any additional Pi configuration needed goes here
   # For now there's nothing, but this section is still somewhat WIP while we evaluate the Pi on our various platforms
+  echo -n
+elif [ "$PLATFORM_CHOICE" == "$PLATFORM_DESKTOP" ];
+then
+  # Any additional Intel/AMD configuration needed goes here
+  # For now there's nothing, but we may need to add changes for specific hardware revisions in the future
   echo -n
 fi
 echo -e "\e[32mDone: Configuring Networking\e[0m"
