@@ -130,9 +130,9 @@ do
   # show usage & exit
   if [[ $arg == "-h" || $arg == "--help" ]];
   then
-    echo "Usage: bash install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2|raspi|amd64}] [-r|--robot {dingo|husky|jackal}] [-y|--yes]"
+    echo "Usage: bash install.sh [-h|--help] [-d|--device {nx|nano|agx|tx2|raspi|desktop}] [-r|--robot {dingo|husky|jackal}] [-y|--yes]"
     echo "    -h|--help           Show this message"
-    echo "    -d|--device DEVICE  Specify the target computer (e.g. Nvidia Jetson family, Raspberry Pi) you are running this script on"
+    echo "    -d|--device DEVICE  Specify the target computer (e.g. x86_64 desktop, Nvidia Jetson family, Raspberry Pi) you are running this script on"
     echo "    -r|--robot ROBOT    Specify the type of Clearpath robot you are setting up"
     echo "    -y|--yes            Use the default response for all yes/no inputs"
     echo ""
@@ -163,10 +163,7 @@ do
       "raspi" )
         PLATFORM_CHOICE=$PLATFORM_RASPI
       ;;
-      "amd64" )    # standard 64-bit desktop CPU
-        PLATFORM_CHOICE=$PLATFORM_DESKTOP
-      ;;
-      "dekstop" )  # alias for amd64, just for clarity
+      "desktop" )    # standard 64-bit desktop CPU
         PLATFORM_CHOICE=$PLATFORM_DESKTOP
       ;;
       *)
@@ -244,7 +241,7 @@ case "$PLATFORM_CHOICE" in
     compute_type="raspi"
     ;;
   6)
-    compute_type="amd64"
+    compute_type="desktop"
   * )
     echo -e "\e[31mERROR: Invalid selection"
     exit 1
