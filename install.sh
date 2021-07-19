@@ -242,7 +242,8 @@ case "$PLATFORM_CHOICE" in
     ;;
   6)
     compute_type="desktop"
-  * )
+    ;;
+  *)
     echo -e "\e[31mERROR: Invalid selection"
     exit 1
     ;;
