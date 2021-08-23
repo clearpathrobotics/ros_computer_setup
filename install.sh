@@ -212,12 +212,23 @@ case $ubuntu_version in
   "bionic" )
     ros_version="melodic"
     ;;
+  "focal" )
+    ros_version="noetic"
+    ;;
   *)
     echo -e "\e[31mERROR: Unsupported Ubuntu version: $ubuntu_version\e[0m"
     exit 0
 esac
 
-echo -e "\e[32mUbuntu ${ubuntu_version} is supported, proceeding to install ROS ${ros_version}\e[0m"
+# Sanity check; not all robots have support for all ROS versions; check specific cases
+# and exit if we have an unsupported combination
+if [ "$robot_target" == "dingo" ] && [ "$ros_version" == "noetic" ];
+then
+  echo -e "\e[31mERROR: Ubuntu ${ubuntu_version} + ROS ${ros_version} is not supported on ${robot_target} (yet) \e[0m"
+  exit 0
+else
+  echo -e "\e[32mUbuntu ${ubuntu_version} is supported on ${robot_target}, proceeding to install ROS ${ros_version}\e[0m"
+fi
 
 if [[ $PLATFORM_CHOICE -eq -1 ]];
 then
