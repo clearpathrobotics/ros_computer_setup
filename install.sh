@@ -22,7 +22,7 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Usage: install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2}] [-r|--robot {dingo|husky|jackal}] [-y|--yes]
+# Usage: install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2}] [-r|--robot {dingo|husky|jackal|ridgeback}] [-y|--yes]
 
 #set -x
 
@@ -118,6 +118,7 @@ PLATFORM_CHOICE=-1
 ROBOT_HUSKY=1
 ROBOT_JACKAL=2
 ROBOT_DINGO=3
+ROBOT_RIDGEBACK=4
 ROBOT_CHOICE=-1
 
 # parse the command-line options
@@ -130,7 +131,7 @@ do
   # show usage & exit
   if [[ $arg == "-h" || $arg == "--help" ]];
   then
-    echo "Usage: bash install.sh [-h|--help] [-d|--device {nx|nano|agx|tx2|raspi|desktop}] [-r|--robot {dingo|husky|jackal}] [-y|--yes]"
+    echo "Usage: bash install.sh [-h|--help] [-d|--device {nx|nano|agx|tx2|raspi|desktop}] [-r|--robot {dingo|husky|jackal|ridgeback}] [-y|--yes]"
     echo "    -h|--help           Show this message"
     echo "    -d|--device DEVICE  Specify the target computer (e.g. x86_64 desktop, Nvidia Jetson family, Raspberry Pi) you are running this script on"
     echo "    -r|--robot ROBOT    Specify the type of Clearpath robot you are setting up"
@@ -186,6 +187,9 @@ do
       "jackal" )
         ROBOT_CHOICE=$ROBOT_JACKAL
       ;;
+      "ridgeback" )
+        ROBOT_CHOICE=$ROBOT_RIDGEBACK
+      ;;
       *)
         echo -e "\e[31mERROR: Unknown robot platform:\e[0m $robot_target"
         exit 1
@@ -222,7 +226,8 @@ esac
 
 # Sanity check; not all robots have support for all ROS versions; check specific cases
 # and exit if we have an unsupported combination
-if [ "$robot_target" == "dingo" ] && [ "$ros_version" == "noetic" ];
+if ([ "$robot_target" == "dingo" ] && [ "$ros_version" == "noetic" ]) ||
+   ([ "$robot_target" == "ridgeback" ] && [ "$ros_version" == "noetic" ]);
 then
   echo -e "\e[31mERROR: Ubuntu ${ubuntu_version} + ROS ${ros_version} is not supported on ${robot_target} (yet) \e[0m"
   exit 0
@@ -265,7 +270,7 @@ echo ""
 if [[ $ROBOT_CHOICE -eq -1 ]];
 then
   echo ""
-  prompt_option ROBOT_CHOICE "Which robot are you installing?" "Clearpath Husky" "Clearpath Jackal" "Clearpath Dingo"
+  prompt_option ROBOT_CHOICE "Which robot are you installing?" "Clearpath Husky" "Clearpath Jackal" "Clearpath Dingo" "Clearpath Ridgeback"
 fi
 case "$ROBOT_CHOICE" in
   1)
@@ -276,6 +281,9 @@ case "$ROBOT_CHOICE" in
     ;;
   3)
     platform="dingo"
+    ;;
+  4)
+    platform="ridgeback"
     ;;
   * )
     echo -e "\e[31mERROR: Invalid selection"
