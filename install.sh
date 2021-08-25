@@ -493,10 +493,12 @@ echo ""
 
 echo -e "\e[94mConfiguring Networking\e[0m"
 sudo usermod -a -G netdev $USER
-sudo apt install -qq -y wicd-curses bridge-utils dhcpcd5
-sudo apt remove -qq -y network-manager
-sudo mv /etc/network/interfaces /etc/network/interfaces.bkup.$(date +"%Y%m%d%H%M%S")
-sudo tee /etc/network/interfaces > /dev/null <<EOT
+if [ "$ubuntu_version" == "xenial" ] || [ "$ubuntu_version" == "bionic" ];
+sudo apt install -qq -y bridge-utils dhcpcd5
+then
+  sudo apt install -qq -y wicd-curses ifupdown
+  sudo mv /etc/network/interfaces /etc/network/interfaces.bkup.$(date +"%Y%m%d%H%M%S")
+  sudo tee /etc/network/interfaces > /dev/null <<EOT
 auto lo br0 br0:0
 iface lo inet loopback
 
@@ -513,6 +515,42 @@ iface br0 inet static
 allow-hotplug br0:0
 iface br0:0 inet dhcp
 EOT
+else
+  sudo apt install -qq -y netplan.io
+
+  # remove the default netplan configuration and replace it with the bridge
+  if [ -f /etc/netplan/01-netcfg.yaml ];
+  then
+    rm /etc/netplan/01-netcfg.yaml
+  fi
+  sudo tee /etc/netplan/50-clearpath-bridge.yaml > /dev/null <<EOT
+# Configure the wired ports to form a single bridge
+# We assume wired ports are en* or eth*
+# This host will have address 192.168.131.1
+network:
+version: 2
+renderer: networkd
+ethernets:
+bridge_eth:
+  dhcp4: no
+  dhcp6: no
+  match:
+    name: eth*
+bridge_en:
+  dhcp4: no
+  dhcp6: no
+  match:
+    name: en*
+bridges:
+br0:
+  dhcp4: yes
+  dhcp6: no
+  interfaces: [bridge_en, bridge_eth]
+  addresses:
+    - 192.168.131.1/24
+EOT
+fi
+sudo apt remove -qq -y network-manager
 
 # apply the fix to prevent the networking from hanging for 5 minutes on boot
 if [ "$ubuntu_version" == "bionic" ];
