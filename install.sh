@@ -521,7 +521,7 @@ else
   # remove the default netplan configuration and replace it with the bridge
   if [ -f /etc/netplan/01-netcfg.yaml ];
   then
-    rm /etc/netplan/01-netcfg.yaml
+    sudo rm /etc/netplan/01-netcfg.yaml
   fi
   sudo tee /etc/netplan/50-clearpath-bridge.yaml > /dev/null <<EOT
 # Configure the wired ports to form a single bridge
