@@ -515,6 +515,12 @@ iface br0 inet static
 allow-hotplug br0:0
 iface br0:0 inet dhcp
 EOT
+
+  # We're using wicd, not network-manager so disable the interfaces accordingly
+  sudo tee --append /etc/NetworkManager/NetworkManager.conf <<EOT
+[keyfile]
+unmanaged-devices=interface-name:br*;interface-name:eth*;interface-name:wlan*;interface-name:wlp*
+EOT
 else
   sudo apt install -qq -y netplan.io
 
@@ -564,12 +570,6 @@ then
   sudo systemctl mask systemd-networkd-wait-online.service
   sudo systemctl daemon-reload
 fi
-
-# We're using wicd, not network-manager so disable the interfaces accordingly
-sudo tee --append /etc/NetworkManager/NetworkManager.conf <<EOT
-[keyfile]
-unmanaged-devices=interface-name:br*;interface-name:eth*;interface-name:wlan*;interface-name:wlp*
-EOT
 
 # Disable wifi power management to improve network performance & reduce latency
 if [ "$PLATFORM_CHOICE" == "$PLATFORM_TX2" ];
