@@ -121,6 +121,9 @@ ROBOT_DINGO=3
 ROBOT_RIDGEBACK=4
 ROBOT_CHOICE=-1
 
+# 0/1 should we install wicd (default yes)
+INSTALL_WICD=1
+
 # parse the command-line options
 nargs=$#
 for (( i=0; $i<$nargs; i++ ));
@@ -131,10 +134,11 @@ do
   # show usage & exit
   if [[ $arg == "-h" || $arg == "--help" ]];
   then
-    echo "Usage: bash install.sh [-h|--help] [-d|--device {nx|nano|agx|tx2|raspi|desktop}] [-r|--robot {dingo|husky|jackal|ridgeback}] [-y|--yes]"
+    echo "Usage: bash install.sh [-h|--help] [-d|--device {nx|nano|agx|tx2|raspi|desktop}] [-r|--robot {dingo|husky|jackal|ridgeback}] [-w|--no-wicd] [-y|--yes]"
     echo "    -h|--help           Show this message"
     echo "    -d|--device DEVICE  Specify the target computer (e.g. x86_64 desktop, Nvidia Jetson family, Raspberry Pi) you are running this script on"
     echo "    -r|--robot ROBOT    Specify the type of Clearpath robot you are setting up"
+    echo "    -w|--no-wicd        Do not install WICD to manage the wireless network devices"
     echo "    -y|--yes            Use the default response for all yes/no inputs"
     echo ""
     echo "    To run the script fully non-interactively you must set the -n -r and -y flags"
@@ -194,6 +198,9 @@ do
         echo -e "\e[31mERROR: Unknown robot platform:\e[0m $robot_target"
         exit 1
     esac
+  elif [[ $arg == "-w" || $arg == "--no-wicd" ]];
+  then
+    INSTALL_WICD=0
   else
     echo -e "\e[31mERROR: Unknown parameter:\e[0m $arg"
     exit 1
@@ -493,8 +500,12 @@ echo ""
 
 echo -e "\e[94mConfiguring Networking\e[0m"
 sudo usermod -a -G netdev $USER
-sudo apt install -qq -y wicd-curses bridge-utils dhcpcd5
-sudo apt remove -qq -y network-manager
+sudo apt install -qq -y bridge-utils dhcpcd5
+if [ "$INSTALL_WICD" = "1" ];
+then
+  sudo apt-get install -qq -y wicd-curses
+  sudo apt remove -qq -y network-manager
+fi
 sudo mv /etc/network/interfaces /etc/network/interfaces.bkup.$(date +"%Y%m%d%H%M%S")
 sudo tee /etc/network/interfaces > /dev/null <<EOT
 auto lo br0 br0:0
