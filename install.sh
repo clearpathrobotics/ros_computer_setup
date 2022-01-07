@@ -219,12 +219,15 @@ echo -e "\e[32m"
 case $ubuntu_version in
   "xenial" )
     ros_version="kinetic"
+    python_prefix="python"
     ;;
   "bionic" )
     ros_version="melodic"
+    python_prefix="python"
     ;;
   "focal" )
     ros_version="noetic"
+    python_prefix="python3"
     ;;
   *)
     echo -e "\e[31mERROR: Unsupported Ubuntu version: $ubuntu_version\e[0m"
@@ -351,7 +354,7 @@ echo -e "\e[32mDone: Updating packages\e[0m"
 echo ""
 
 echo -e "\e[94mInstalling ROS prerequisites\e[0m"
-sudo apt install -qq -y python-rosdep python-rosinstall python-rosinstall-generator python-wstool build-essential
+sudo apt install -qq -y ${python_prefix}-rosdep ${python_prefix}-rosinstall ${python_prefix}-rosinstall-generator ${python_prefix}-wstool build-essential
 # ensure the correct tool for setting user permissions for the upstart job are present
 if [ "$ubuntu_version" == "bionic" ];
 then
