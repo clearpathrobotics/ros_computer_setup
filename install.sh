@@ -228,6 +228,7 @@ case $ubuntu_version in
   "focal" )
     ros_version="noetic"
     python_prefix="python3"
+    INSTALL_WICD=0   # wicd is not installable on 20.04!
     ;;
   *)
     echo -e "\e[31mERROR: Unsupported Ubuntu version: $ubuntu_version\e[0m"
@@ -508,9 +509,19 @@ if [ "$INSTALL_WICD" = "1" ];
 then
   sudo apt-get install -qq -y wicd-curses
   sudo apt remove -qq -y network-manager
-fi
-sudo mv /etc/network/interfaces /etc/network/interfaces.bkup.$(date +"%Y%m%d%H%M%S")
-sudo tee /etc/network/interfaces > /dev/null <<EOT
+
+  # We're using wicd, not network-manager so disable the interfaces accordingly
+  sudo tee --append /etc/NetworkManager/NetworkManager.conf <<EOT
+[keyfile]
+unmanaged-devices=interface-name:br*;interface-name:eth*;interface-name:wlan*;interface-name:wlp*
+EOT
+fi # INSTALL_WICD
+
+if [ $ubuntu_version = "xenial" ];
+then
+  # configure the bridge with the interfaces file
+  sudo mv /etc/network/interfaces /etc/network/interfaces.bkup.$(date +"%Y%m%d%H%M%S")
+  sudo tee /etc/network/interfaces > /dev/null <<EOT
 auto lo br0 br0:0
 iface lo inet loopback
 
@@ -527,9 +538,38 @@ iface br0 inet static
 allow-hotplug br0:0
 iface br0:0 inet dhcp
 EOT
+else
+  # configure the bridge with netplan
+  sudo apt-get install -qq -y netplan.io
+  sudo rm /etc/netplan/*.yaml
+  sudo tee /etc/netplan/50-clearpath-bridge.yaml <<EOT
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    # bridge all wired interfaces together on 192.168.131.x
+    bridge_en:
+      dhcp4: no
+      dhcp6: no
+      match:
+        name: en*
+    bridge_eth:
+      dhcp4: no
+      dhcp6: no
+      match:
+        name: eth*
+  bridges:
+    br0:
+      dhcp4: yes
+      dhcp6: no
+      interfaces: [bridge_en, bridge_eth]
+      addresses:
+        - 192.168.131.1/24
+EOT
+fi # ubuntu_version
 
 # apply the fix to prevent the networking from hanging for 5 minutes on boot
-if [ "$ubuntu_version" == "bionic" ];
+if [ "$ubuntu_version" = "bionic" ] || [ "$ubuntu_version" = "focal" ];
 then
   if [ ! -d /etc/systemd/system/networking.service.d ];
   then
@@ -540,12 +580,6 @@ then
   sudo systemctl mask systemd-networkd-wait-online.service
   sudo systemctl daemon-reload
 fi
-
-# We're using wicd, not network-manager so disable the interfaces accordingly
-sudo tee --append /etc/NetworkManager/NetworkManager.conf <<EOT
-[keyfile]
-unmanaged-devices=interface-name:br*;interface-name:eth*;interface-name:wlan*;interface-name:wlp*
-EOT
 
 # Disable wifi power management to improve network performance & reduce latency
 if [ "$PLATFORM_CHOICE" == "$PLATFORM_TX2" ];
