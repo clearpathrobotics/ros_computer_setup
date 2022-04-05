@@ -225,6 +225,7 @@ case $ubuntu_version in
     ros_version="melodic"
     python_prefix="python"
     ;;
+    INSTALL_WICD=0   # Do not install wicd on 18.04 since we are solely using Netplan
   "focal" )
     ros_version="noetic"
     python_prefix="python3"
