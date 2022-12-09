@@ -105,11 +105,11 @@ AUTO_YES=0
 # available nvidia platforms; pre-load the user-choice with -1 to indicate undefined
 PLATFORM_XAVIER_NX=1
 PLATFORM_NANO=2
-PLATFORM_XAVIER_AGX=3
+PLATFORM_AGX_XAVIER=3
 PLATFORM_TX2=4
 PLATFORM_RASPI=5
 PLATFORM_DESKTOP=6
-PLATFORM_ORIN_AGX=7
+PLATFORM_AGX_ORIN=7
 PLATFORM_CHOICE=-1
 
 # available robots; pre-load the user-choice with -1 to indicate undefined
@@ -129,7 +129,7 @@ do
   # show usage & exit
   if [[ $arg == "-h" || $arg == "--help" ]];
   then
-    echo "Usage: bash install.sh [-h|--help] [-d|--device {xavier-nx|nano|xavier-agx|tx2|raspi|desktop|orin-agx}] [-r|--robot {dingo|husky|jackal|ridgeback}] [-y|--yes]"
+    echo "Usage: bash install.sh [-h|--help] [-d|--device {xavier-nx|nano|agx-xavier|tx2|raspi|desktop|agx-orin}] [-r|--robot {dingo|husky|jackal|ridgeback}] [-y|--yes]"
     echo "    -h|--help           Show this message"
     echo "    -d|--device DEVICE  Specify the target computer (e.g. x86_64 desktop, Nvidia Jetson family, Raspberry Pi) you are running this script on"
     echo "    -r|--robot ROBOT    Specify the type of Clearpath robot you are setting up"
@@ -153,8 +153,8 @@ do
       "nano" )
         PLATFORM_CHOICE=$PLATFORM_NANO
       ;;
-      "xavier-agx" )
-        PLATFORM_CHOICE=$PLATFORM_XAVIER_AGX
+      "agx-xavier" )
+        PLATFORM_CHOICE=$PLATFORM_AGX_XAVIER
       ;;
       "tx2" )
         PLATFORM_CHOICE=$PLATFORM_TX2
@@ -165,8 +165,8 @@ do
       "desktop" )    # standard 64-bit desktop CPU
         PLATFORM_CHOICE=$PLATFORM_DESKTOP
       ;;
-      "orin-agx" )
-        PLATFORM_CHOICE=$PLATFORM_ORIN_AGX
+      "agx-orin" )
+        PLATFORM_CHOICE=$PLATFORM_AGX_ORIN
       ;;
       *)
         echo -e "\e[31mERROR: Unknown target platform:\e[0m $nvidia_target"
@@ -233,7 +233,7 @@ echo -e "\e[32mUbuntu ${ubuntu_version} is supported on ${robot_target}, proceed
 if [[ $PLATFORM_CHOICE -eq -1 ]];
 then
   echo ""
-  prompt_option PLATFORM_CHOICE "Which computing platform are you installing on?" "Nvidia Jetson Xavier NX" "Nvidia Jetson Nano" "Nvidia Jetson AGX Xavier" "Nvidia Jetson TX2" "Raspberry Pi 4" "Intel/AMD 64-bit desktop"
+  prompt_option PLATFORM_CHOICE "Which computing platform are you installing on?" "Nvidia Jetson Xavier NX" "Nvidia Jetson Nano" "Nvidia Jetson AGX Xavier" "Nvidia Jetson TX2" "Raspberry Pi 4" "Intel/AMD 64-bit desktop" "Nvidia Jetson AGX Orin"
 fi
 case "$PLATFORM_CHOICE" in
   1)
@@ -243,7 +243,7 @@ case "$PLATFORM_CHOICE" in
     compute_type="jetson-nano"
     ;;
   3)
-    compute_type="jetson-xavier-agx"
+    compute_type="jetson-agx-xavier"
     ;;
   4)
     compute_type="jetson-tx2"
@@ -255,7 +255,7 @@ case "$PLATFORM_CHOICE" in
     compute_type="desktop"
     ;;
   7)
-    compute_type="jetson-orin-agx"
+    compute_type="jetson-agx-orin"
     ;;
   *)
     echo -e "\e[31mERROR: Invalid selection"
@@ -572,7 +572,7 @@ then
 fi
 EOT
 
-elif [ "$PLATFORM_CHOICE" == "$PLATFORM_XAVIER_AGX" ];
+elif [ "$PLATFORM_CHOICE" == "$PLATFORM_AGX_XAVIER" ];
 then
   sudo tee --append /etc/rc.local <<EOT
 # disable wireless power management on a regular computer
