@@ -310,7 +310,8 @@ if [ -e /etc/apt/sources.list.d/ros-latest.list ]; then
   echo -e "\e[33mWarn: ROS sources exist, skipping\e[0m"
 else
   sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
-  sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+  sudo apt install -qq -y curl
+  curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
   # Check if sources were added
   if [ ! -e /etc/apt/sources.list.d/ros-latest.list ]; then
     echo -e "\e[31mError: Unable to add ROS sources, exiting\e[0m"
@@ -631,7 +632,7 @@ if [ -e $STORAGE_DRIVE ]; then
       echo -e "\e[32mDone: Automount m2 storage\e[0m"
     fi
   else
-    echo -e "\e[33mWarn: No selected for automouting drive, skipping\e[0m"
+    echo -e "\e[33mWarn: No selected for automounting drive, skipping\e[0m"
   fi
   echo ""
 fi
