@@ -477,7 +477,7 @@ echo ""
 
 echo -e "\e[94mConfiguring ${platform}\e[0m"
 source /etc/ros/setup.bash
-if [ "platform" == "jackal" ]; then
+if [ "$platform" == "jackal" ]; then
   sudo sh -c 'echo export JACKAL_WIRELESS_INTERFACE=wlan0 >> /etc/ros/setup.bash'
 fi
 rosrun ${platform}_bringup install
