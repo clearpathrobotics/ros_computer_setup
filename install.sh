@@ -354,13 +354,34 @@ fi
 echo -e "\e[32mDone: Installing ROS prerequisites\e[0m"
 echo ""
 
+echo -e "\e[94mInstalling ROS\e[0m"
+
+sudo apt install -qq -y ros-${ros_version}-ros-base
+echo -e "\e[32mDone: Installing ROS\e[0m"
+echo ""
+
 echo -e "\e[94mInstalling ${platform} packages\e[0m"
 
-#
-# To do: install from source for unreleased robot packages
-#
+if [[ $platform == "dingo" ]];
+then
+  mkdir -p $HOME/catkin_ws/src
+  cd $HOME/catkin_ws/src
+  git clone https://github.com/clearpathrobotics/puma_motor_driver.git
+  git clone https://github.com/dingo-cpr/dingo.git
+  cd dingo/
+  git checkout rkreinin/dingo_1_5
+  cd ..
+  git clone https://github.com/dingo-cpr/dingo_robot.git
+  cd dingo_robot/
+  git checkout rkreinin/shore_power
+  cd ../..
+  rosdep install --from-paths src --ignore-src --rosdistro=$ROS_DISTRO -r -y
+  catkin_make install
+  source install/setup.bash
+else
+  sudo apt install -qq -y ros-${ros_version}-${platform}-robot
+fi
 
-sudo apt install -qq -y ros-${ros_version}-ros-base ros-${ros_version}-${platform}-robot
 echo -e "\e[32mDone: Installing ${platform} packages\e[0m"
 echo ""
 
@@ -391,6 +412,11 @@ else
     echo -e "\e[31mError: CPR ROS robot environment exist, exiting\e[0m"
     exit 0
   fi
+fi
+
+if [[ $platform == "dingo" ]];
+then
+  echo "source $HOME/catkin_ws/devel/setup.bash" | sudo tee -a /etc/ros/setup.bash
 fi
 
 echo "source /opt/ros/${ros_version}/setup.bash" >> $HOME/.bashrc
@@ -469,9 +495,13 @@ echo ""
 echo -e "\e[94mConfiguring ${platform}\e[0m"
 source /etc/ros/setup.bash
 
-# Set wireless interface envar here, preferably using: https://github.com/dingo-cpr/dingo_robot/blob/noetic-devel/dingo_bringup/scripts/set-wireless-interface
+if [[ $platform == "dingo" ]];
+then
+  yes o | rosrun ${platform}_bringup install
+else
+  rosrun ${platform}_bringup install
+fi
 
-rosrun ${platform}_bringup install
 echo -e "\e[32mDone: Configuring ${platform}\e[0m"
 echo ""
 
