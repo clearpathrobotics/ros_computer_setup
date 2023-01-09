@@ -22,9 +22,7 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-# Usage: install.sh [-h|--help] [-n|--nvidia {nx|nano|agx|tx2}] [-r|--robot {dingo|husky|jackal|ridgeback}] [-y|--yes]
-
-#set -x
+# Usage: bash install.sh [-h|--help] [-d|--device {xavier-nx|nano|agx-xavier|tx2|raspi|desktop|agx-orin}] [-r|--robot {dingo|husky|jackal|ridgeback}] [-y|--yes]
 
 prompt_option() {
   # ask the user to select from a numbered list of options & return their selection
@@ -112,6 +110,7 @@ PLATFORM_AGX_XAVIER=3
 PLATFORM_TX2=4
 PLATFORM_RASPI=5
 PLATFORM_DESKTOP=6
+PLATFORM_AGX_ORIN=7
 PLATFORM_CHOICE=-1
 
 # available robots; pre-load the user-choice with -1 to indicate undefined
@@ -120,9 +119,6 @@ ROBOT_JACKAL=2
 ROBOT_DINGO=3
 ROBOT_RIDGEBACK=4
 ROBOT_CHOICE=-1
-
-# 0/1 should we install wicd (default yes)
-INSTALL_WICD=1
 
 # parse the command-line options
 nargs=$#
@@ -134,11 +130,10 @@ do
   # show usage & exit
   if [[ $arg == "-h" || $arg == "--help" ]];
   then
-    echo "Usage: bash install.sh [-h|--help] [-d|--device {nx|nano|agx|tx2|raspi|desktop}] [-r|--robot {dingo|husky|jackal|ridgeback}] [-w|--no-wicd] [-y|--yes]"
+    echo "Usage: bash install.sh [-h|--help] [-d|--device {xavier-nx|nano|agx-xavier|tx2|raspi|desktop|agx-orin}] [-r|--robot {dingo|husky|jackal|ridgeback}] [-y|--yes]"
     echo "    -h|--help           Show this message"
     echo "    -d|--device DEVICE  Specify the target computer (e.g. x86_64 desktop, Nvidia Jetson family, Raspberry Pi) you are running this script on"
     echo "    -r|--robot ROBOT    Specify the type of Clearpath robot you are setting up"
-    echo "    -w|--no-wicd        Do not install WICD to manage the wireless network devices"
     echo "    -y|--yes            Use the default response for all yes/no inputs"
     echo ""
     echo "    To run the script fully non-interactively you must set the -n -r and -y flags"
@@ -153,13 +148,13 @@ do
     nvidia_target=$1
     shift
     case $nvidia_target in
-      "nx" )
+      "xavier-nx" )
         PLATFORM_CHOICE=$PLATFORM_XAVIER_NX
       ;;
       "nano" )
         PLATFORM_CHOICE=$PLATFORM_NANO
       ;;
-      "agx" )
+      "agx-xavier" )
         PLATFORM_CHOICE=$PLATFORM_AGX_XAVIER
       ;;
       "tx2" )
@@ -170,6 +165,9 @@ do
       ;;
       "desktop" )    # standard 64-bit desktop CPU
         PLATFORM_CHOICE=$PLATFORM_DESKTOP
+      ;;
+      "agx-orin" )
+        PLATFORM_CHOICE=$PLATFORM_AGX_ORIN
       ;;
       *)
         echo -e "\e[31mERROR: Unknown target platform:\e[0m $nvidia_target"
@@ -198,16 +196,13 @@ do
         echo -e "\e[31mERROR: Unknown robot platform:\e[0m $robot_target"
         exit 1
     esac
-  elif [[ $arg == "-w" || $arg == "--no-wicd" ]];
-  then
-    INSTALL_WICD=0
   else
     echo -e "\e[31mERROR: Unknown parameter:\e[0m $arg"
     exit 1
   fi
 done
 
-echo "Starting ROS installion"
+echo "Starting ROS installation..."
 
 # Get Ubuntu version
 ubuntu_version=`lsb_release -sc`
@@ -224,33 +219,22 @@ case $ubuntu_version in
   "bionic" )
     ros_version="melodic"
     python_prefix="python"
-    INSTALL_WICD=0   # Do not install wicd on 18.04 since we are solely using Netplan
     ;;
   "focal" )
     ros_version="noetic"
     python_prefix="python3"
-    INSTALL_WICD=0   # wicd is not installable on 20.04!
     ;;
   *)
     echo -e "\e[31mERROR: Unsupported Ubuntu version: $ubuntu_version\e[0m"
     exit 0
 esac
 
-# Sanity check; not all robots have support for all ROS versions; check specific cases
-# and exit if we have an unsupported combination
-if ([ "$robot_target" == "dingo" ] && [ "$ros_version" == "noetic" ]) ||
-   ([ "$robot_target" == "ridgeback" ] && [ "$ros_version" == "noetic" ]);
-then
-  echo -e "\e[31mERROR: Ubuntu ${ubuntu_version} + ROS ${ros_version} is not supported on ${robot_target} (yet) \e[0m"
-  exit 0
-else
-  echo -e "\e[32mUbuntu ${ubuntu_version} is supported on ${robot_target}, proceeding to install ROS ${ros_version}\e[0m"
-fi
+echo -e "\e[32mUbuntu ${ubuntu_version} is supported on ${robot_target}, proceeding to install ROS ${ros_version}\e[0m"
 
 if [[ $PLATFORM_CHOICE -eq -1 ]];
 then
   echo ""
-  prompt_option PLATFORM_CHOICE "Which computing platform are you installing on?" "Nvidia Jetson Xavier NX" "Nvidia Jetson Nano" "Nvidia Jetson AGX Xavier" "Nvidia Jetson TX2" "Raspberry Pi 4" "Intel/AMD 64-bit desktop"
+  prompt_option PLATFORM_CHOICE "Which computing platform are you installing on?" "Nvidia Jetson Xavier NX" "Nvidia Jetson Nano" "Nvidia Jetson AGX Xavier" "Nvidia Jetson TX2" "Raspberry Pi 4" "Intel/AMD 64-bit desktop" "Nvidia Jetson AGX Orin"
 fi
 case "$PLATFORM_CHOICE" in
   1)
@@ -260,7 +244,7 @@ case "$PLATFORM_CHOICE" in
     compute_type="jetson-nano"
     ;;
   3)
-    compute_type="jetson-xavier-agx"
+    compute_type="jetson-agx-xavier"
     ;;
   4)
     compute_type="jetson-tx2"
@@ -270,6 +254,9 @@ case "$PLATFORM_CHOICE" in
     ;;
   6)
     compute_type="desktop"
+    ;;
+  7)
+    compute_type="jetson-agx-orin"
     ;;
   *)
     echo -e "\e[31mERROR: Invalid selection"
@@ -319,13 +306,13 @@ echo ""
 
 echo -e "\e[94mSetup your apt sources\e[0m"
 
-
 # Check if ROS sources are already installed
 if [ -e /etc/apt/sources.list.d/ros-latest.list ]; then
   echo -e "\e[33mWarn: ROS sources exist, skipping\e[0m"
 else
   sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
-  sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+  sudo apt install -qq -y curl
+  curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
   # Check if sources were added
   if [ ! -e /etc/apt/sources.list.d/ros-latest.list ]; then
     echo -e "\e[31mError: Unable to add ROS sources, exiting\e[0m"
@@ -368,9 +355,10 @@ fi
 echo -e "\e[32mDone: Installing ROS prerequisites\e[0m"
 echo ""
 
-echo -e "\e[94mInstalling ${platform} packages\e[0m"
-sudo apt install -qq -y ros-${ros_version}-ros-base ros-${ros_version}-${platform}-robot
-echo -e "\e[32mDone: Installing ${platform} packages\e[0m"
+echo -e "\e[94mInstalling ROS\e[0m"
+
+sudo apt install -qq -y ros-${ros_version}-ros-base
+echo -e "\e[32mDone: Installing ROS\e[0m"
 echo ""
 
 echo -e "\e[94mConfiguring Robot environment\e[0m"
@@ -432,6 +420,14 @@ rosdep -q update
 echo -e "\e[32mDone: Configuring rosdep\e[0m"
 echo ""
 
+echo -e "\e[94mInstalling ${platform} packages\e[0m"
+
+source /etc/ros/setup.bash
+sudo apt install -qq -y ros-${ros_version}-${platform}-robot
+
+echo -e "\e[32mDone: Installing ${platform} packages\e[0m"
+echo ""
+
 echo -e "\e[94mConfiguring udev rules\e[0m"
 sudo wget -q -O /etc/udev/rules.d/41-clearpath.rules \
   https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/udev/41-clearpath.rules
@@ -476,11 +472,10 @@ echo -e "\e[32mDone: Configuring system configs\e[0m"
 echo ""
 
 echo -e "\e[94mConfiguring ${platform}\e[0m"
+
 source /etc/ros/setup.bash
-if [ "$platform" == "jackal" ]; then
-  sudo sh -c 'echo export JACKAL_WIRELESS_INTERFACE=wlan0 >> /etc/ros/setup.bash'
-fi
 rosrun ${platform}_bringup install
+
 echo -e "\e[32mDone: Configuring ${platform}\e[0m"
 echo ""
 
@@ -505,18 +500,7 @@ echo ""
 
 echo -e "\e[94mConfiguring Networking\e[0m"
 sudo usermod -a -G netdev $USER
-sudo apt install -qq -y bridge-utils dhcpcd5
-if [ "$INSTALL_WICD" = "1" ];
-then
-  sudo apt-get install -qq -y wicd-curses
-  sudo apt remove -qq -y network-manager
-
-  # We're using wicd, not network-manager so disable the interfaces accordingly
-  sudo tee --append /etc/NetworkManager/NetworkManager.conf <<EOT
-[keyfile]
-unmanaged-devices=interface-name:br*;interface-name:eth*;interface-name:wlan*;interface-name:wlp*
-EOT
-fi # INSTALL_WICD
+sudo apt install -qq -y bridge-utils
 
 if [ $ubuntu_version = "xenial" ];
 then
@@ -632,7 +616,6 @@ sudo apt-get -qq -y autoremove
 echo -e "\e[32mDone: Removing unused packages\e[0m"
 echo ""
 
-
 STORAGE_DRIVE="/dev/nvme0n1"
 if [ -e $STORAGE_DRIVE ]; then
   echo -e "\e[94mm2 drive detected\e[0m"
@@ -653,7 +636,7 @@ if [ -e $STORAGE_DRIVE ]; then
       echo -e "\e[32mDone: Automount m2 storage\e[0m"
     fi
   else
-    echo -e "\e[33mWarn: No selected for automouting drive, skipping\e[0m"
+    echo -e "\e[33mWarn: No selected for automounting drive, skipping\e[0m"
   fi
   echo ""
 fi
