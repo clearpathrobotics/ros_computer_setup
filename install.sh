@@ -495,6 +495,7 @@ source /etc/ros/setup.bash
 
 if [[ $platform == "dingo" ]];
 then
+  source $HOME/catkin_ws/install/setup.bash
   yes o | rosrun ${platform}_bringup install
 else
   rosrun ${platform}_bringup install
