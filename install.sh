@@ -360,31 +360,6 @@ sudo apt install -qq -y ros-${ros_version}-ros-base
 echo -e "\e[32mDone: Installing ROS\e[0m"
 echo ""
 
-echo -e "\e[94mInstalling ${platform} packages\e[0m"
-
-if [[ $platform == "dingo" ]];
-then
-  mkdir -p $HOME/catkin_ws/src
-  cd $HOME/catkin_ws/src
-  git clone https://github.com/clearpathrobotics/puma_motor_driver.git
-  git clone https://github.com/dingo-cpr/dingo.git
-  cd dingo/
-  git checkout rkreinin/dingo_1_5
-  cd ..
-  git clone https://github.com/dingo-cpr/dingo_robot.git
-  cd dingo_robot/
-  git checkout rkreinin/shore_power
-  cd ../..
-  rosdep install --from-paths src --ignore-src --rosdistro=$ROS_DISTRO -r -y
-  catkin_make install
-  source install/setup.bash
-else
-  sudo apt install -qq -y ros-${ros_version}-${platform}-robot
-fi
-
-echo -e "\e[32mDone: Installing ${platform} packages\e[0m"
-echo ""
-
 echo -e "\e[94mConfiguring Robot environment\e[0m"
 
 sudo mkdir -p /etc/ros
@@ -412,11 +387,6 @@ else
     echo -e "\e[31mError: CPR ROS robot environment exist, exiting\e[0m"
     exit 0
   fi
-fi
-
-if [[ $platform == "dingo" ]];
-then
-  echo "source $HOME/catkin_ws/devel/setup.bash" | sudo tee -a /etc/ros/setup.bash
 fi
 
 echo "source /opt/ros/${ros_version}/setup.bash" >> $HOME/.bashrc
@@ -447,6 +417,34 @@ else
 fi
 rosdep -q update
 echo -e "\e[32mDone: Configuring rosdep\e[0m"
+echo ""
+
+echo -e "\e[94mInstalling ${platform} packages\e[0m"
+
+source /etc/ros/setup.bash
+
+if [[ $platform == "dingo" ]];
+then
+  mkdir -p $HOME/catkin_ws/src
+  cd $HOME/catkin_ws/src
+  git clone https://github.com/clearpathrobotics/puma_motor_driver.git
+  git clone https://github.com/dingo-cpr/dingo.git
+  cd dingo/
+  git checkout rkreinin/dingo_1_5
+  cd ..
+  git clone https://github.com/dingo-cpr/dingo_robot.git
+  cd dingo_robot/
+  git checkout rkreinin/shore_power
+  cd ../..
+  rosdep install --from-paths src --ignore-src --rosdistro=$ROS_DISTRO -r -y
+  catkin_make install
+  source install/setup.bash
+  echo "source $HOME/catkin_ws/devel/setup.bash" | sudo tee -a /etc/ros/setup.bash
+else
+  sudo apt install -qq -y ros-${ros_version}-${platform}-robot
+fi
+
+echo -e "\e[32mDone: Installing ${platform} packages\e[0m"
 echo ""
 
 echo -e "\e[94mConfiguring udev rules\e[0m"
