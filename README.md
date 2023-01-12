@@ -1,12 +1,19 @@
 # ros_computer_setup
-Simple script that makes all Clearpath specific changes to a as system that does not support the standard ISO image
-(ie Nvidia Jetson) to make it operate like our robot standard images.  Makes it work as a standard computer for Husky or Jackal.
+Contains a simple install script that makes all Clearpath specific changes to a system that does not support the standard Clearpath ISO image
+(e.g. ARM64 NVIDIA Jetson computers), and make the system operate as if the standard Clearpath ISO image had been installed. The system will effectively be setup as a standard computer for support Clearpath robot platforms.
 
 ## Supported Jetsons
 * TX2 (Kinetic)
-* Nano (Melodic)
-* Xavier AGX (Melodic)
-* Xavier NX (Melodic)
+* Nano (Melodic, Noetic)
+* AGX Xavier (Melodic, Noetic)
+* Xavier NX (Melodic, Noetic)
+* AGX Orin (Melodic, Noetic)
+
+## Supported Clearpath Robot Platforms
+* Husky
+* Jackal
+* Dingo
+* Ridgeback
 
 ## Usage
 ```wget -c https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/install.sh && bash install.sh```
