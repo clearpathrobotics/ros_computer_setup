@@ -499,14 +499,18 @@ echo -e "\e[32mDone: Configuring Bluetooth\e[0m"
 echo ""
 
 echo -e "\e[94mConfiguring Networking\e[0m"
-sudo usermod -a -G netdev $USER
-sudo apt install -qq -y bridge-utils
 
-if [ $ubuntu_version = "xenial" ];
-then
-  # configure the bridge with the interfaces file
-  sudo mv /etc/network/interfaces /etc/network/interfaces.bkup.$(date +"%Y%m%d%H%M%S")
-  sudo tee /etc/network/interfaces > /dev/null <<EOT
+prompt_yesNO network_prompt "\e[94mConfigure networking with netplan?\e[0m"
+echo $network_prompt
+if [[ $network_prompt == "y" ]]; then
+  sudo usermod -a -G netdev $USER
+  sudo apt install -qq -y bridge-utils
+
+  if [ $ubuntu_version = "xenial" ];
+  then
+    # configure the bridge with the interfaces file
+    sudo mv /etc/network/interfaces /etc/network/interfaces.bkup.$(date +"%Y%m%d%H%M%S")
+    sudo tee /etc/network/interfaces > /dev/null <<EOT
 auto lo br0 br0:0
 iface lo inet loopback
 
@@ -523,11 +527,11 @@ iface br0 inet static
 allow-hotplug br0:0
 iface br0:0 inet dhcp
 EOT
-else
-  # configure the bridge with netplan
-  sudo apt-get install -qq -y netplan.io
-  sudo rm /etc/netplan/*.yaml
-  sudo tee /etc/netplan/50-clearpath-bridge.yaml <<EOT
+  else
+    # configure the bridge with netplan
+    sudo apt-get install -qq -y netplan.io
+    sudo rm /etc/netplan/*.yaml
+    sudo tee /etc/netplan/50-clearpath-bridge.yaml <<EOT
 network:
   version: 2
   renderer: networkd
@@ -551,25 +555,25 @@ network:
       addresses:
         - 192.168.131.1/24
 EOT
-fi # ubuntu_version
+  fi # ubuntu_version
 
-# apply the fix to prevent the networking from hanging for 5 minutes on boot
-if [ "$ubuntu_version" = "bionic" ] || [ "$ubuntu_version" = "focal" ];
-then
-  if [ ! -d /etc/systemd/system/networking.service.d ];
+  # apply the fix to prevent the networking from hanging for 5 minutes on boot
+  if [ "$ubuntu_version" = "bionic" ] || [ "$ubuntu_version" = "focal" ];
   then
-    sudo mkdir -p /etc/systemd/system/networking.service.d/
+    if [ ! -d /etc/systemd/system/networking.service.d ];
+    then
+      sudo mkdir -p /etc/systemd/system/networking.service.d/
+    fi
+    sudo bash -c 'echo -e "[Service]\nTimeoutStartSec=5sec" > /etc/systemd/system/networking.service.d/timeout.conf'
+
+    sudo systemctl mask systemd-networkd-wait-online.service
+    sudo systemctl daemon-reload
   fi
-  sudo bash -c 'echo -e "[Service]\nTimeoutStartSec=5sec" > /etc/systemd/system/networking.service.d/timeout.conf'
 
-  sudo systemctl mask systemd-networkd-wait-online.service
-  sudo systemctl daemon-reload
-fi
-
-# Disable wifi power management to improve network performance & reduce latency
-if [ "$PLATFORM_CHOICE" == "$PLATFORM_TX2" ];
-then
-  sudo tee --append /etc/rc.local <<EOT
+  # Disable wifi power management to improve network performance & reduce latency
+  if [ "$PLATFORM_CHOICE" == "$PLATFORM_TX2" ];
+  then
+    sudo tee --append /etc/rc.local <<EOT
 # disable power management on a Jetson TX2
 if ! iw dev wlan0 set power_save off;
 then
@@ -577,9 +581,9 @@ then
 fi
 EOT
 
-elif [ "$PLATFORM_CHOICE" == "$PLATFORM_AGX_XAVIER" ];
-then
-  sudo tee --append /etc/rc.local <<EOT
+  elif [ "$PLATFORM_CHOICE" == "$PLATFORM_AGX_XAVIER" ];
+  then
+    sudo tee --append /etc/rc.local <<EOT
 # disable wireless power management on a regular computer
 if ! iwconfig wlan0 power off;
 then
@@ -587,9 +591,9 @@ then
 fi
 EOT
 
-elif [ "$PLATFORM_CHOICE" == "$PLATFORM_XAVIER_NX" ] || [ "$PLATFORM_CHOICE" == "$PLATFORM_NANO" ];
-then
-  sudo tee --append /etc/rc.local <<EOT
+  elif [ "$PLATFORM_CHOICE" == "$PLATFORM_XAVIER_NX" ] || [ "$PLATFORM_CHOICE" == "$PLATFORM_NANO" ];
+  then
+    sudo tee --append /etc/rc.local <<EOT
 # disable wireless power management on a regular computer
 if ! iwconfig wlp2s0 power off;
 then
@@ -597,19 +601,23 @@ then
 fi
 EOT
 
-elif [ "$PLATFORM_CHOICE" == "$PLATFORM_RASPI" ];
-then
-  # Any additional Pi configuration needed goes here
-  # For now there's nothing, but this section is still somewhat WIP while we evaluate the Pi on our various platforms
-  echo -n
-elif [ "$PLATFORM_CHOICE" == "$PLATFORM_DESKTOP" ];
-then
-  # Any additional Intel/AMD configuration needed goes here
-  # For now there's nothing, but we may need to add changes for specific hardware revisions in the future
-  echo -n
+  elif [ "$PLATFORM_CHOICE" == "$PLATFORM_RASPI" ];
+  then
+    # Any additional Pi configuration needed goes here
+    # For now there's nothing, but this section is still somewhat WIP while we evaluate the Pi on our various platforms
+    echo -n
+  elif [ "$PLATFORM_CHOICE" == "$PLATFORM_DESKTOP" ];
+  then
+    # Any additional Intel/AMD configuration needed goes here
+    # For now there's nothing, but we may need to add changes for specific hardware revisions in the future
+    echo -n
+  fi
+  echo -e "\e[32mDone: Configuring Networking\e[0m"
+  echo ""
+
+else
+  echo -e "\e[33mWarn: Network was not configured with netplan, skipping\e[0m"
 fi
-echo -e "\e[32mDone: Configuring Networking\e[0m"
-echo ""
 
 echo -e "\e[94mRemoving unused packages\e[0m"
 sudo apt-get -qq -y autoremove
