@@ -411,7 +411,7 @@ else
   fi
 fi
 
-if [ $ROBOT_CHOICE == $ROBOT_SECONDARY ] && ![ -e /etc/ros/setup-remote.bash ]; then
+if [ $ROBOT_CHOICE == $ROBOT_SECONDARY ] && ! [ -e /etc/ros/setup-remote.bash ]; then
   echo "Creating setup file for remote ROS launch..."
   sudo wget -q -O /etc/ros/setup-remote.bash \
     https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/setup-remote.bash
