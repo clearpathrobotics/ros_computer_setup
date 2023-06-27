@@ -118,6 +118,7 @@ ROBOT_HUSKY=1
 ROBOT_JACKAL=2
 ROBOT_DINGO=3
 ROBOT_RIDGEBACK=4
+ROBOT_SECONDARY=5
 ROBOT_CHOICE=-1
 
 # parse the command-line options
@@ -130,7 +131,7 @@ do
   # show usage & exit
   if [[ $arg == "-h" || $arg == "--help" ]];
   then
-    echo "Usage: bash install.sh [-h|--help] [-d|--device {xavier-nx|nano|agx-xavier|tx2|raspi|desktop|agx-orin}] [-r|--robot {dingo|husky|jackal|ridgeback}] [-y|--yes]"
+    echo "Usage: bash install.sh [-h|--help] [-d|--device {xavier-nx|nano|agx-xavier|tx2|raspi|desktop|agx-orin}] [-r|--robot {dingo|husky|jackal|ridgeback|secondary}] [-y|--yes]"
     echo "    -h|--help           Show this message"
     echo "    -d|--device DEVICE  Specify the target computer (e.g. x86_64 desktop, Nvidia Jetson family, Raspberry Pi) you are running this script on"
     echo "    -r|--robot ROBOT    Specify the type of Clearpath robot you are setting up"
@@ -191,6 +192,9 @@ do
       ;;
       "ridgeback" )
         ROBOT_CHOICE=$ROBOT_RIDGEBACK
+      ;;
+      "secondary" )
+        ROBOT_CHOICE=ROBOT_SECONDARY
       ;;
       *)
         echo -e "\e[31mERROR: Unknown robot platform:\e[0m $robot_target"
@@ -269,7 +273,7 @@ echo ""
 if [[ $ROBOT_CHOICE -eq -1 ]];
 then
   echo ""
-  prompt_option ROBOT_CHOICE "Which robot are you installing?" "Clearpath Husky" "Clearpath Jackal" "Clearpath Dingo" "Clearpath Ridgeback"
+  prompt_option ROBOT_CHOICE "Which robot are you installing?" "Clearpath Husky" "Clearpath Jackal" "Clearpath Dingo" "Clearpath Ridgeback" "Secondary Processor"
 fi
 case "$ROBOT_CHOICE" in
   1)
@@ -284,6 +288,9 @@ case "$ROBOT_CHOICE" in
   4)
     platform="ridgeback"
     ;;
+  5)
+    platform="secondary"
+    ;;
   * )
     echo -e "\e[31mERROR: Invalid selection"
     exit 1
@@ -291,6 +298,20 @@ case "$ROBOT_CHOICE" in
 esac
 echo "Selected ${platform}."
 echo ""
+
+# if this is a secondary computer, ask the hostname of the primary PC
+if [ $ROBOT_CHOICE == $ROBOT_SECONDARY ];
+then
+  echo "What is the hostname of the robot's PRIMARY computer?"
+  ROBOT_HOSTNAME=""
+  while [ -z "$ROBOT_HOSTNAME" ];
+  do
+    read ROBOT_HOSTNAME
+  done
+
+  echo "Adding hosts entry for $ROBOT_HOSTNAME"
+  sudo -- sh -c -e "echo '192.168.131.1        $ROBOT_HOSTNAME' >> /etc/hosts"
+fi
 
 echo "Summary: Installing ROS ${ros_version} on ${compute_type} in ${platform}"
 echo ""
@@ -390,6 +411,14 @@ else
   fi
 fi
 
+if [ $ROBOT_CHOICE == $ROBOT_SECONDARY ] && [ -e /etc/ros/setup-remote.bash ]; then
+  echo "Creating setup file for remote ROS launch..."
+  sudo wget -q -O /etc/ros/setup-remote.bash \
+    https://raw.githubusercontent.com/clearpathrobotics/ros_computer_setup/main/files/setup-remote.bash
+  sudo sed -i "s/ROBOT_HOSTNAME/${ROBOT_HOSTNAME}/g" /etc/ros/setup-remote.bash
+  sudo chmod +x /etc/ros/setup-remote.bash
+fi
+
 echo "source /opt/ros/${ros_version}/setup.bash" >> $HOME/.bashrc
 echo -e "\e[32mDone: Configuring Robot environment\e[0m"
 echo ""
@@ -420,13 +449,20 @@ rosdep -q update
 echo -e "\e[32mDone: Configuring rosdep\e[0m"
 echo ""
 
-echo -e "\e[94mInstalling ${platform} packages\e[0m"
-
 source /etc/ros/setup.bash
-sudo apt install -qq -y ros-${ros_version}-${platform}-robot
+if [ $ROBOT_CHOICE == $ROBOT_SECONDARY ];
+then
+  echo -e "\e[94mInstalling core ROS components for secondary processor\e[0m"
+  sudo apt install -qq -y ros-${ros_version}-ros-core
+  echo -e "\e[32mDone: Installing core ROS packages\e[0m"
+  echo ""
+else
+  echo -e "\e[94mInstalling ${platform} packages\e[0m"
 
-echo -e "\e[32mDone: Installing ${platform} packages\e[0m"
-echo ""
+  sudo apt install -qq -y ros-${ros_version}-${platform}-robot
+  echo -e "\e[32mDone: Installing ${platform} packages\e[0m"
+  echo ""
+fi
 
 echo -e "\e[94mConfiguring udev rules\e[0m"
 sudo wget -q -O /etc/udev/rules.d/41-clearpath.rules \
@@ -510,7 +546,27 @@ if [[ $network_prompt == "y" ]]; then
   then
     # configure the bridge with the interfaces file
     sudo mv /etc/network/interfaces /etc/network/interfaces.bkup.$(date +"%Y%m%d%H%M%S")
-    sudo tee /etc/network/interfaces > /dev/null <<EOT
+    if [ $ROBOT_CHOICE == $ROBOT_SECONDARY ];
+    then
+      sudo tee /etc/network/interfaces > /dev/null <<EOT
+auto lo br0 br0:0
+iface lo inet loopback
+
+# Bridge together physical ports on machine, assign secondary Clearpath Robot IP.
+iface br0 inet static
+  bridge_ports regex (eth.*)|(en.*)
+  address 192.168.131.5
+  netmask 255.255.255.0
+  bridge_maxwait 0
+
+# Also seek out DHCP IP on those ports, for the sake of easily getting online,
+# maintenance, ethernet radio support, etc.
+# For Raspberry Pi 4, you may need to disable allow-hotplug br0:0
+allow-hotplug br0:0
+iface br0:0 inet dhcp
+EOT
+    else
+      sudo tee /etc/network/interfaces > /dev/null <<EOT
 auto lo br0 br0:0
 iface lo inet loopback
 
@@ -527,11 +583,39 @@ iface br0 inet static
 allow-hotplug br0:0
 iface br0:0 inet dhcp
 EOT
+fi # robot main vs secondary
   else
     # configure the bridge with netplan
     sudo apt-get install -qq -y netplan.io
     sudo rm /etc/netplan/*.yaml
-    sudo tee /etc/netplan/50-clearpath-bridge.yaml <<EOT
+    if [ $ROBOT_CHOICE == $ROBOT_SECONDARY ];
+    then
+      sudo tee /etc/netplan/50-clearpath-bridge.yaml <<EOT
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    # bridge all wired interfaces together on 192.168.131.x
+    bridge_en:
+      dhcp4: no
+      dhcp6: no
+      match:
+        name: en*
+    bridge_eth:
+      dhcp4: no
+      dhcp6: no
+      match:
+        name: eth*
+  bridges:
+    br0:
+      dhcp4: yes
+      dhcp6: no
+      interfaces: [bridge_en, bridge_eth]
+      addresses:
+        - 192.168.131.5/24
+EOT
+    else
+      sudo tee /etc/netplan/50-clearpath-bridge.yaml <<EOT
 network:
   version: 2
   renderer: networkd
@@ -555,6 +639,7 @@ network:
       addresses:
         - 192.168.131.1/24
 EOT
+fi # robot main vs secondary
   fi # ubuntu_version
 
   # apply the fix to prevent the networking from hanging for 5 minutes on boot
